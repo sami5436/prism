@@ -127,29 +127,39 @@ export default function TickerSearch({ onSelect, isLoading }: TickerSearchProps)
                 onKeyDown={handleKeyDown}
                 placeholder="Search ticker or company..."
                 disabled={isLoading}
-                className="w-full px-4 py-3 bg-white/5 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:border-white/25 transition-colors"
+                className="w-full px-4 py-3 rounded-lg transition-colors"
+                style={{
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                }}
             />
 
             {showDropdown && displayItems.length > 0 && (
                 <div
                     ref={dropdownRef}
-                    className="absolute z-50 w-full mt-2 bg-neutral-900 border border-white/10 rounded-lg overflow-hidden"
+                    className="absolute z-50 w-full mt-2 rounded-lg overflow-hidden"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
                 >
                     {query.length === 0 && (
-                        <div className="px-4 py-2 text-xs text-gray-500">Popular</div>
+                        <div className="px-4 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>Popular</div>
                     )}
                     {displayItems.map((result, index) => (
                         <button
                             key={result.symbol}
                             onClick={() => handleSelect(result.symbol)}
-                            className={`w-full px-4 py-3 flex items-center justify-between cursor-pointer transition-colors ${index === selectedIndex ? 'bg-white/10' : 'hover:bg-white/5'
-                                }`}
+                            className="w-full px-4 py-3 flex items-center justify-between cursor-pointer transition-colors"
+                            style={{
+                                background: index === selectedIndex ? 'var(--bg-tertiary)' : 'transparent',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = index === selectedIndex ? 'var(--bg-tertiary)' : 'transparent'}
                         >
                             <div className="flex items-center gap-3">
-                                <span className="text-white font-medium">{result.symbol}</span>
-                                <span className="text-gray-500 text-sm truncate max-w-[180px]">{result.name}</span>
+                                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{result.symbol}</span>
+                                <span className="text-sm truncate max-w-[180px]" style={{ color: 'var(--text-muted)' }}>{result.name}</span>
                             </div>
-                            <span className="text-xs text-gray-600">{result.exchange}</span>
+                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{result.exchange}</span>
                         </button>
                     ))}
                 </div>

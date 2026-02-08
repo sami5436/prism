@@ -75,19 +75,20 @@ export default function PriceChart({
     const latestPrice = historical[historical.length - 1]?.close || 0;
 
     return (
-        <div className="border border-gray-800 rounded bg-gray-900 p-4">
+        <div className="rounded-lg p-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h2 className="text-white font-medium">Price</h2>
+                <h2 className="font-medium" style={{ color: 'var(--text-primary)' }}>Price</h2>
 
                 <div className="flex gap-1">
                     {periods.map((p) => (
                         <button
                             key={p.value}
                             onClick={() => onPeriodChange(p.value as '1mo' | '3mo' | '6mo' | '1y' | '2y')}
-                            className={`px-2 py-1 text-xs rounded cursor-pointer ${currentPeriod === p.value
-                                    ? 'bg-gray-700 text-white'
-                                    : 'text-gray-500 hover:text-white'
-                                }`}
+                            className="px-2 py-1 text-xs rounded cursor-pointer"
+                            style={{
+                                background: currentPeriod === p.value ? 'var(--bg-tertiary)' : 'transparent',
+                                color: currentPeriod === p.value ? 'var(--text-primary)' : 'var(--text-muted)',
+                            }}
                         >
                             {p.label}
                         </button>
@@ -100,14 +101,12 @@ export default function PriceChart({
                     <button
                         key={overlay.id}
                         onClick={() => toggleOverlay(overlay.id)}
-                        className={`px-2 py-1 text-xs rounded cursor-pointer ${activeOverlays.has(overlay.id)
-                                ? 'text-white'
-                                : 'text-gray-500 hover:text-gray-300'
-                            }`}
+                        className="px-2 py-1 text-xs rounded cursor-pointer"
                         style={{
                             backgroundColor: activeOverlays.has(overlay.id) ? `${overlay.color}40` : 'transparent',
-                            borderColor: activeOverlays.has(overlay.id) ? overlay.color : '#374151',
+                            borderColor: activeOverlays.has(overlay.id) ? overlay.color : 'var(--border-color)',
                             borderWidth: 1,
+                            color: activeOverlays.has(overlay.id) ? 'var(--text-primary)' : 'var(--text-muted)',
                         }}
                     >
                         {overlay.label}
@@ -140,11 +139,11 @@ export default function PriceChart({
 
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: '#1f2937',
-                                border: '1px solid #374151',
+                                backgroundColor: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
                                 borderRadius: '4px',
                             }}
-                            labelStyle={{ color: '#9ca3af' }}
+                            labelStyle={{ color: 'var(--text-muted)' }}
                             formatter={((value: number | undefined, name: string | undefined) => [
                                 `$${(value ?? 0).toFixed(2)}`,
                                 name === 'close' ? 'Price' : (name ?? '').toUpperCase(),

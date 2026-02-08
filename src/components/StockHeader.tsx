@@ -24,18 +24,18 @@ export default function StockHeader({ quote }: StockHeaderProps) {
     };
 
     return (
-        <div className="border border-gray-800 rounded bg-gray-900 p-6">
+        <div className="rounded-lg p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold text-white">{quote.symbol}</span>
-                        <span className="text-gray-400">{quote.exchange}</span>
+                        <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{quote.symbol}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{quote.exchange}</span>
                     </div>
-                    <h1 className="text-lg text-gray-300">{quote.name}</h1>
+                    <h1 className="text-lg" style={{ color: 'var(--text-secondary)' }}>{quote.name}</h1>
                 </div>
 
                 <div className="flex items-baseline gap-3">
-                    <span className="text-4xl font-bold text-white">
+                    <span className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
                         ${quote.price.toFixed(2)}
                     </span>
                     <span className={`text-lg font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
@@ -44,31 +44,31 @@ export default function StockHeader({ quote }: StockHeaderProps) {
                 </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-800">
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-4 text-sm">
                     <div>
-                        <span className="text-gray-500">Open</span>
-                        <p className="text-white">${quote.open.toFixed(2)}</p>
+                        <span style={{ color: 'var(--text-muted)' }}>Open</span>
+                        <p style={{ color: 'var(--text-primary)' }}>${quote.open.toFixed(2)}</p>
                     </div>
                     <div>
-                        <span className="text-gray-500">High</span>
+                        <span style={{ color: 'var(--text-muted)' }}>High</span>
                         <p className="text-green-500">${quote.high.toFixed(2)}</p>
                     </div>
                     <div>
-                        <span className="text-gray-500">Low</span>
+                        <span style={{ color: 'var(--text-muted)' }}>Low</span>
                         <p className="text-red-500">${quote.low.toFixed(2)}</p>
                     </div>
                     <div>
-                        <span className="text-gray-500">Prev Close</span>
-                        <p className="text-white">${quote.previousClose.toFixed(2)}</p>
+                        <span style={{ color: 'var(--text-muted)' }}>Prev Close</span>
+                        <p style={{ color: 'var(--text-primary)' }}>${quote.previousClose.toFixed(2)}</p>
                     </div>
                     <div>
-                        <span className="text-gray-500">Volume</span>
-                        <p className="text-white">{formatVolume(quote.volume)}</p>
+                        <span style={{ color: 'var(--text-muted)' }}>Volume</span>
+                        <p style={{ color: 'var(--text-primary)' }}>{formatVolume(quote.volume)}</p>
                     </div>
                     <div>
-                        <span className="text-gray-500">Mkt Cap</span>
-                        <p className="text-white">{formatNumber(quote.marketCap)}</p>
+                        <span style={{ color: 'var(--text-muted)' }}>Mkt Cap</span>
+                        <p style={{ color: 'var(--text-primary)' }}>{formatNumber(quote.marketCap)}</p>
                     </div>
                 </div>
             </div>

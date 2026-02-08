@@ -39,16 +39,16 @@ export default function IndicatorsPanel({ historical, indicators }: IndicatorsPa
     const latestSignal = indicators.macd.signal[indicators.macd.signal.length - 1];
 
     const getRsiStatus = (rsi: number) => {
-        if (isNaN(rsi)) return { text: 'N/A', color: 'text-gray-400' };
-        if (rsi > 70) return { text: 'Overbought', color: 'text-red-500' };
-        if (rsi < 30) return { text: 'Oversold', color: 'text-green-500' };
-        return { text: 'Neutral', color: 'text-gray-400' };
+        if (isNaN(rsi)) return { text: 'N/A', color: 'var(--text-muted)' };
+        if (rsi > 70) return { text: 'Overbought', color: '#ef4444' };
+        if (rsi < 30) return { text: 'Oversold', color: '#22c55e' };
+        return { text: 'Neutral', color: 'var(--text-muted)' };
     };
 
     const getMacdStatus = () => {
-        if (isNaN(latestMacd) || isNaN(latestSignal)) return { text: 'N/A', color: 'text-gray-400' };
-        if (latestMacd > latestSignal) return { text: 'Bullish', color: 'text-green-500' };
-        return { text: 'Bearish', color: 'text-red-500' };
+        if (isNaN(latestMacd) || isNaN(latestSignal)) return { text: 'N/A', color: 'var(--text-muted)' };
+        if (latestMacd > latestSignal) return { text: 'Bullish', color: '#22c55e' };
+        return { text: 'Bearish', color: '#ef4444' };
     };
 
     const rsiStatus = getRsiStatus(latestRsi);
@@ -57,31 +57,31 @@ export default function IndicatorsPanel({ historical, indicators }: IndicatorsPa
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* RSI */}
-            <div className="border border-gray-800 rounded bg-gray-900 p-4">
+            <div className="rounded-lg p-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <div className="flex justify-between items-start mb-3">
                     <div>
-                        <h3 className="text-white font-medium">RSI (14)</h3>
-                        <p className="text-gray-500 text-xs">Relative Strength Index</p>
+                        <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>RSI (14)</h3>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Relative Strength Index</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-xl font-bold text-white">
+                        <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
                             {isNaN(latestRsi) ? 'N/A' : latestRsi.toFixed(1)}
                         </p>
-                        <p className={`text-xs ${rsiStatus.color}`}>{rsiStatus.text}</p>
+                        <p className="text-xs" style={{ color: rsiStatus.color }}>{rsiStatus.text}</p>
                     </div>
                 </div>
 
                 {/* RSI Gauge */}
                 <div className="mb-3">
-                    <div className="relative h-2 bg-gray-700 rounded">
+                    <div className="relative h-2 rounded" style={{ background: 'var(--bg-tertiary)' }}>
                         {!isNaN(latestRsi) && (
                             <div
-                                className="absolute top-0 h-full w-1 bg-white rounded"
-                                style={{ left: `${latestRsi}%` }}
+                                className="absolute top-0 h-full w-1 rounded"
+                                style={{ left: `${latestRsi}%`, background: 'var(--text-primary)' }}
                             />
                         )}
                     </div>
-                    <div className="flex justify-between mt-1 text-xs text-gray-600">
+                    <div className="flex justify-between mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                         <span>0</span>
                         <span>30</span>
                         <span>70</span>
@@ -110,21 +110,21 @@ export default function IndicatorsPanel({ historical, indicators }: IndicatorsPa
             </div>
 
             {/* MACD */}
-            <div className="border border-gray-800 rounded bg-gray-900 p-4">
+            <div className="rounded-lg p-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <div className="flex justify-between items-start mb-3">
                     <div>
-                        <h3 className="text-white font-medium">MACD</h3>
-                        <p className="text-gray-500 text-xs">Moving Average Convergence Divergence</p>
+                        <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>MACD</h3>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Moving Average Convergence Divergence</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-xl font-bold text-white">
+                        <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
                             {isNaN(latestMacd) ? 'N/A' : latestMacd.toFixed(2)}
                         </p>
-                        <p className={`text-xs ${macdStatus.color}`}>{macdStatus.text}</p>
+                        <p className="text-xs" style={{ color: macdStatus.color }}>{macdStatus.text}</p>
                     </div>
                 </div>
 
-                <div className="flex gap-4 mb-3 text-xs text-gray-500">
+                <div className="flex gap-4 mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
                     <span>— MACD</span>
                     <span>— Signal</span>
                     <span>▪ Histogram</span>
@@ -144,11 +144,11 @@ export default function IndicatorsPanel({ historical, indicators }: IndicatorsPa
                             <YAxis stroke="#6b7280" tick={{ fill: '#6b7280', fontSize: 9 }} />
                             <Tooltip
                                 contentStyle={{
-                                    backgroundColor: '#1f2937',
-                                    border: '1px solid #374151',
+                                    backgroundColor: 'var(--bg-secondary)',
+                                    border: '1px solid var(--border-color)',
                                     borderRadius: '4px',
                                 }}
-                                labelStyle={{ color: '#9ca3af' }}
+                                labelStyle={{ color: 'var(--text-muted)' }}
                             />
                             <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
                             <Bar dataKey="histogram" fill="#6b7280" opacity={0.4} />
