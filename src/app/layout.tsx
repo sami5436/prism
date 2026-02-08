@@ -5,7 +5,6 @@ export const metadata: Metadata = {
   title: "Prism.",
   description: "Stock analysis, simplified. Technical indicators, interactive charts, and algorithmic signals.",
   keywords: ["stock analysis", "technical indicators", "RSI", "MACD", "trading"],
-  icons: null,
   openGraph: {
     title: "Prism.",
     description: "Stock analysis, simplified.",
