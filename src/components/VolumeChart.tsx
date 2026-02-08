@@ -32,7 +32,9 @@ export default function VolumeChart({ historical, indicators }: VolumeChartProps
         return vol.toString();
     };
 
-    const avgVolume = indicators.volumeAvg20;
+    // Get the last value of volumeSma for the average
+    const volumeSmaArray = indicators.volumeSma;
+    const avgVolume = volumeSmaArray[volumeSmaArray.length - 1] || 0;
     const currentVolume = historical[historical.length - 1]?.volume || 0;
     const volumeRatio = avgVolume > 0 ? currentVolume / avgVolume : 1;
 
@@ -68,7 +70,7 @@ export default function VolumeChart({ historical, indicators }: VolumeChartProps
                                 border: '1px solid var(--border-color)',
                                 borderRadius: '8px',
                             }}
-                            formatter={(value: number) => [formatVolume(value), 'Volume']}
+                            formatter={(value: number | undefined) => [formatVolume(value ?? 0), 'Volume']}
                         />
                         <ReferenceLine y={avgVolume} stroke="#666" strokeDasharray="3 3" />
                         <Bar

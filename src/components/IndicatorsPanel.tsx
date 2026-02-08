@@ -34,19 +34,21 @@ export default function IndicatorsPanel({ historical, indicators }: IndicatorsPa
         };
     });
 
-    const latestRsi = indicators.rsi[indicators.rsi.length - 1];
-    const latestMacd = indicators.macd.macd[indicators.macd.macd.length - 1];
-    const latestSignal = indicators.macd.signal[indicators.macd.signal.length - 1];
+    const latestRsi = indicators.rsi[indicators.rsi.length - 1] ?? NaN;
+    const latestMacd = indicators.macd.macd[indicators.macd.macd.length - 1] ?? NaN;
+    const latestSignal = indicators.macd.signal[indicators.macd.signal.length - 1] ?? NaN;
 
     const getRsiStatus = (rsi: number) => {
-        if (isNaN(rsi)) return { text: 'N/A', color: 'var(--text-muted)' };
+        if (rsi == null || isNaN(rsi)) return { text: 'N/A', color: 'var(--text-muted)' };
         if (rsi > 70) return { text: 'Overbought', color: '#ef4444' };
         if (rsi < 30) return { text: 'Oversold', color: '#22c55e' };
         return { text: 'Neutral', color: 'var(--text-muted)' };
     };
 
     const getMacdStatus = () => {
-        if (isNaN(latestMacd) || isNaN(latestSignal)) return { text: 'N/A', color: 'var(--text-muted)' };
+        if (latestMacd == null || latestSignal == null || isNaN(latestMacd) || isNaN(latestSignal)) {
+            return { text: 'N/A', color: 'var(--text-muted)' };
+        }
         if (latestMacd > latestSignal) return { text: 'Bullish', color: '#22c55e' };
         return { text: 'Bearish', color: '#ef4444' };
     };
@@ -118,7 +120,7 @@ export default function IndicatorsPanel({ historical, indicators }: IndicatorsPa
                     </div>
                     <div className="text-right">
                         <p className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                            {isNaN(latestMacd) ? 'N/A' : latestMacd.toFixed(2)}
+                            {latestMacd == null || isNaN(latestMacd) ? 'N/A' : latestMacd.toFixed(2)}
                         </p>
                         <p className="text-xs" style={{ color: macdStatus.color }}>{macdStatus.text}</p>
                     </div>
