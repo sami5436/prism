@@ -2,18 +2,19 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Prism | Stock Analysis",
+  title: "Prism.",
   description: "Stock analysis, simplified. Technical indicators, interactive charts, and algorithmic signals.",
   keywords: ["stock analysis", "technical indicators", "RSI", "MACD", "trading"],
+  icons: null,
   openGraph: {
-    title: "Prism",
+    title: "Prism.",
     description: "Stock analysis, simplified.",
     type: "website",
     siteName: "Prism",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Prism",
+    title: "Prism.",
     description: "Stock analysis, simplified.",
   },
   appleWebApp: {
