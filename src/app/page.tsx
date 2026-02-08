@@ -56,7 +56,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <a href="/" className="text-white text-xl font-medium tracking-tight">
-              Prism
+              Prism.
             </a>
 
             {stockData && (
@@ -74,7 +74,7 @@ export default function Home() {
           <div className="min-h-[90vh] flex flex-col items-center justify-center px-6 pt-24">
             <div className="max-w-2xl w-full text-center">
               <h1 className="text-5xl md:text-7xl font-semibold text-white tracking-tight mb-6">
-                Prism
+                Prism.
               </h1>
               <p className="text-xl md:text-2xl text-gray-400 font-light mb-12">
                 Stock analysis, simplified.

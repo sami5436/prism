@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     title: "Prism.",
     description: "Stock analysis, simplified.",
     type: "website",
-    siteName: "Prism",
+    siteName: "Prism.",
   },
   twitter: {
     card: "summary_large_image",
