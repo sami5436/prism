@@ -90,84 +90,66 @@ export default function TickerSearch({ onSelect, isLoading }: TickerSearchProps)
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (!showDropdown || results.length === 0) return;
+        const items = query.length === 0 ? cachedTickers : results;
+        if (!showDropdown || items.length === 0) return;
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            const items = query.length === 0 ? cachedTickers : results;
             setSelectedIndex((prev) => (prev < items.length - 1 ? prev + 1 : prev));
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
         } else if (e.key === 'Enter' && selectedIndex >= 0) {
             e.preventDefault();
-            const items = query.length === 0 ? cachedTickers : results;
             handleSelect(items[selectedIndex].symbol);
         } else if (e.key === 'Escape') {
             setShowDropdown(false);
         }
     };
 
+    const displayItems = query.length === 0 ? cachedTickers : results;
+
     return (
-        <div className="relative w-full max-w-xl mx-auto">
-            <div className="relative flex items-center">
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => {
-                        setQuery(e.target.value);
-                        setShowDropdown(true);
-                        setSelectedIndex(-1);
-                    }}
-                    onFocus={() => {
-                        setShowDropdown(true);
-                        loadCachedTickers();
-                    }}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Search stocks... (e.g., AAPL, MSFT, GOOGL)"
-                    disabled={isLoading}
-                    className="w-full px-6 py-4 bg-slate-800 text-white placeholder-slate-400 rounded-xl border border-slate-600 focus:outline-none focus:border-slate-400 transition-colors text-lg"
-                />
+        <div className="relative w-full">
+            <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => {
+                    setQuery(e.target.value);
+                    setShowDropdown(true);
+                    setSelectedIndex(-1);
+                }}
+                onFocus={() => {
+                    setShowDropdown(true);
+                    loadCachedTickers();
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Search ticker or company..."
+                disabled={isLoading}
+                className="w-full px-4 py-3 bg-white/5 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:border-white/25 transition-colors"
+            />
 
-                {/* Search icon / spinner */}
-                <div className="absolute right-4">
-                    {searching || isLoading ? (
-                        <svg className="w-6 h-6 text-cyan-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                    ) : (
-                        <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    )}
-                </div>
-            </div>
-
-            {/* Dropdown Results */}
-            {showDropdown && (query.length === 0 ? cachedTickers : results).length > 0 && (
+            {showDropdown && displayItems.length > 0 && (
                 <div
                     ref={dropdownRef}
-                    className="absolute z-50 w-full mt-2 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-2xl shadow-cyan-500/10 overflow-hidden"
+                    className="absolute z-50 w-full mt-2 bg-neutral-900 border border-white/10 rounded-lg overflow-hidden"
                 >
-                    {query.length === 0 && cachedTickers.length > 0 && (
-                        <div className="px-4 py-2 text-xs text-slate-500 border-b border-slate-700/30">Popular Tickers</div>
+                    {query.length === 0 && (
+                        <div className="px-4 py-2 text-xs text-gray-500">Popular</div>
                     )}
-                    {(query.length === 0 ? cachedTickers : results).map((result, index) => (
+                    {displayItems.map((result, index) => (
                         <button
                             key={result.symbol}
                             onClick={() => handleSelect(result.symbol)}
-                            className={`w-full px-4 py-3 flex items-center justify-between transition-all duration-200 cursor-pointer ${index === selectedIndex
-                                ? 'bg-gradient-to-r from-cyan-500/20 to-teal-500/20'
-                                : 'hover:bg-slate-800/50'
+                            className={`w-full px-4 py-3 flex items-center justify-between cursor-pointer transition-colors ${index === selectedIndex ? 'bg-white/10' : 'hover:bg-white/5'
                                 }`}
                         >
                             <div className="flex items-center gap-3">
-                                <span className="text-cyan-400 font-bold text-lg">{result.symbol}</span>
-                                <span className="text-slate-400 text-sm truncate max-w-[200px]">{result.name}</span>
+                                <span className="text-white font-medium">{result.symbol}</span>
+                                <span className="text-gray-500 text-sm truncate max-w-[180px]">{result.name}</span>
                             </div>
-                            <span className="text-xs text-slate-500 uppercase">{result.exchange}</span>
+                            <span className="text-xs text-gray-600">{result.exchange}</span>
                         </button>
                     ))}
                 </div>

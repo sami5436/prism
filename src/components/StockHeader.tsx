@@ -24,87 +24,54 @@ export default function StockHeader({ quote }: StockHeaderProps) {
     };
 
     return (
-        <div className="relative overflow-hidden rounded-2xl">
-            {/* Background gradient */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${isPositive
-                    ? 'from-emerald-500/10 via-cyan-500/5 to-transparent'
-                    : 'from-rose-500/10 via-fuchsia-500/5 to-transparent'
-                }`} />
-
-            <div className="relative p-6 bg-slate-900/60 backdrop-blur-xl border border-slate-700/30 rounded-2xl">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    {/* Main info */}
-                    <div className="flex items-center gap-6">
-                        {/* Symbol badge */}
-                        <div className={`relative p-4 rounded-xl ${isPositive ? 'bg-emerald-500/10' : 'bg-rose-500/10'
-                            }`}>
-                            <div className={`absolute inset-0 rounded-xl ${isPositive
-                                    ? 'bg-gradient-to-br from-emerald-400/20 to-cyan-400/20'
-                                    : 'bg-gradient-to-br from-rose-400/20 to-fuchsia-400/20'
-                                } blur-sm`} />
-                            <span className={`relative text-3xl font-black tracking-tight ${isPositive ? 'text-emerald-400' : 'text-rose-400'
-                                }`}>
-                                {quote.symbol}
-                            </span>
-                        </div>
-
-                        <div>
-                            <h1 className="text-2xl font-bold text-white">{quote.name}</h1>
-                            <p className="text-slate-400 text-sm">{quote.exchange}</p>
-                        </div>
+        <div className="border border-gray-800 rounded bg-gray-900 p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl font-bold text-white">{quote.symbol}</span>
+                        <span className="text-gray-400">{quote.exchange}</span>
                     </div>
-
-                    {/* Price info */}
-                    <div className="flex items-baseline gap-4">
-                        <span className="text-5xl font-black text-white tracking-tight">
-                            ${quote.price.toFixed(2)}
-                        </span>
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${isPositive ? 'bg-emerald-500/20' : 'bg-rose-500/20'
-                            }`}>
-                            <span className={`text-xl font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {isPositive ? '+' : ''}{quote.change.toFixed(2)}
-                            </span>
-                            <span className={`text-lg font-semibold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                ({isPositive ? '+' : ''}{quote.changePercent.toFixed(2)}%)
-                            </span>
-                        </div>
-                    </div>
+                    <h1 className="text-lg text-gray-300">{quote.name}</h1>
                 </div>
 
-                {/* Stats row */}
-                <div className="mt-6 pt-6 border-t border-slate-700/30">
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        <StatItem label="Open" value={`$${quote.open.toFixed(2)}`} />
-                        <StatItem label="High" value={`$${quote.high.toFixed(2)}`} highlight="emerald" />
-                        <StatItem label="Low" value={`$${quote.low.toFixed(2)}`} highlight="rose" />
-                        <StatItem label="Prev Close" value={`$${quote.previousClose.toFixed(2)}`} />
-                        <StatItem label="Volume" value={formatVolume(quote.volume)} />
-                        <StatItem label="Mkt Cap" value={formatNumber(quote.marketCap)} />
+                <div className="flex items-baseline gap-3">
+                    <span className="text-4xl font-bold text-white">
+                        ${quote.price.toFixed(2)}
+                    </span>
+                    <span className={`text-lg font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                        {isPositive ? '+' : ''}{quote.change.toFixed(2)} ({isPositive ? '+' : ''}{quote.changePercent.toFixed(2)}%)
+                    </span>
+                </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-800">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-4 text-sm">
+                    <div>
+                        <span className="text-gray-500">Open</span>
+                        <p className="text-white">${quote.open.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <span className="text-gray-500">High</span>
+                        <p className="text-green-500">${quote.high.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <span className="text-gray-500">Low</span>
+                        <p className="text-red-500">${quote.low.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <span className="text-gray-500">Prev Close</span>
+                        <p className="text-white">${quote.previousClose.toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <span className="text-gray-500">Volume</span>
+                        <p className="text-white">{formatVolume(quote.volume)}</p>
+                    </div>
+                    <div>
+                        <span className="text-gray-500">Mkt Cap</span>
+                        <p className="text-white">{formatNumber(quote.marketCap)}</p>
                     </div>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function StatItem({
-    label,
-    value,
-    highlight
-}: {
-    label: string;
-    value: string;
-    highlight?: 'emerald' | 'rose';
-}) {
-    return (
-        <div className="text-center">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{label}</p>
-            <p className={`text-lg font-semibold ${highlight === 'emerald' ? 'text-emerald-400' :
-                    highlight === 'rose' ? 'text-rose-400' :
-                        'text-white'
-                }`}>
-                {value}
-            </p>
         </div>
     );
 }

@@ -50,22 +50,17 @@ export default function Home() {
   }, [currentTicker, fetchStockData]);
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-slate-700/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo - clickable home button */}
-            <a href="/" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-              <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center">
-                <span className="text-xl font-black text-white">P</span>
-              </div>
-              <h1 className="text-xl font-bold text-white">Prism</h1>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-5xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <a href="/" className="text-white text-xl font-medium tracking-tight">
+              Prism
             </a>
 
-            {/* Search in header when stock is loaded */}
             {stockData && (
-              <div className="hidden md:block w-96">
+              <div className="w-64">
                 <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
               </div>
             )}
@@ -73,162 +68,163 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero section when no stock is loaded */}
+      <div className="pt-16">
+        {/* Landing page */}
         {!stockData && !isLoading && !error && (
-          <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-8">
-            {/* Hero text */}
-            <div className="text-center space-y-4">
-              <h2 className="text-5xl md:text-6xl font-black text-white">
-                Stock Intelligence
-              </h2>
-              <p className="text-xl text-slate-400 max-w-2xl">
-                Analyze any stock with powerful technical indicators, real-time charts,
-                and AI-powered insights to guide your trading decisions.
+          <div className="min-h-[90vh] flex flex-col items-center justify-center px-6 pt-24">
+            <div className="max-w-2xl w-full text-center">
+              <h1 className="text-5xl md:text-7xl font-semibold text-white tracking-tight mb-6">
+                Prism
+              </h1>
+              <p className="text-xl md:text-2xl text-gray-400 font-light mb-12">
+                Stock analysis, simplified.
               </p>
-            </div>
 
-            {/* Search */}
-            <div className="w-full max-w-2xl">
-              <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
-            </div>
+              <div className="max-w-md mx-auto mb-16">
+                <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
+              </div>
 
-            {/* Feature highlights */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 w-full max-w-4xl">
-              <FeatureCard
-                icon="chart"
-                title="Technical Indicators"
-                description="SMA, EMA, RSI, MACD, Bollinger Bands and more"
-              />
-              <FeatureCard
-                icon="trending"
-                title="Interactive Charts"
-                description="Visualize price action with customizable overlays"
-              />
-              <FeatureCard
-                icon="cpu"
-                title="AI Analysis"
-                description="Get instant bullish/bearish signals and summaries"
-              />
+              <div className="grid grid-cols-3 gap-8 max-w-lg mx-auto text-sm mb-24">
+                <div>
+                  <p className="text-white font-medium mb-1">Technical</p>
+                  <p className="text-gray-500">RSI, MACD, SMA</p>
+                </div>
+                <div>
+                  <p className="text-white font-medium mb-1">Charts</p>
+                  <p className="text-gray-500">Interactive overlays</p>
+                </div>
+                <div>
+                  <p className="text-white font-medium mb-1">Signals</p>
+                  <p className="text-gray-500">Algorithmic analysis</p>
+                </div>
+              </div>
+
+              {/* Indicators Explainer */}
+              <div className="border-t border-white/10 pt-16 mt-8">
+                <h2 className="text-2xl font-semibold text-white text-center mb-4">
+                  Understanding the Indicators
+                </h2>
+                <p className="text-gray-500 text-center max-w-xl mx-auto mb-12">
+                  Technical indicators help identify trends and potential trading opportunities.
+                  Here&apos;s what each one tells you.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto text-left">
+                  <div className="p-6 bg-white/5 rounded-lg border border-white/5">
+                    <h3 className="text-white font-medium mb-2">RSI (Relative Strength Index)</h3>
+                    <p className="text-gray-500 text-sm mb-3">
+                      Measures momentum on a scale of 0-100. Above 70 suggests overbought (may drop),
+                      below 30 suggests oversold (may rise).
+                    </p>
+                    <p className="text-gray-600 text-xs italic">
+                      Think of it like a speedometer—when it&apos;s too high, you might need to slow down.
+                    </p>
+                  </div>
+
+                  <div className="p-6 bg-white/5 rounded-lg border border-white/5">
+                    <h3 className="text-white font-medium mb-2">MACD</h3>
+                    <p className="text-gray-500 text-sm mb-3">
+                      Shows the relationship between two moving averages. When MACD crosses above
+                      the signal line, it&apos;s bullish. Below is bearish.
+                    </p>
+                    <p className="text-gray-600 text-xs italic">
+                      Like comparing a fast runner to a slow one—when the fast one pulls ahead, momentum is building.
+                    </p>
+                  </div>
+
+                  <div className="p-6 bg-white/5 rounded-lg border border-white/5">
+                    <h3 className="text-white font-medium mb-2">Moving Averages (SMA/EMA)</h3>
+                    <p className="text-gray-500 text-sm mb-3">
+                      Smooth out price data to show trends. When price is above the average,
+                      the trend is up. SMA 50 and 200 crossovers are key signals.
+                    </p>
+                    <p className="text-gray-600 text-xs italic">
+                      Like your GPA—it smooths out daily grades to show your overall performance trend.
+                    </p>
+                  </div>
+
+                  <div className="p-6 bg-white/5 rounded-lg border border-white/5">
+                    <h3 className="text-white font-medium mb-2">Bollinger Bands</h3>
+                    <p className="text-gray-500 text-sm mb-3">
+                      Shows volatility with upper and lower bands. Price touching bands often
+                      reverses. Narrow bands suggest a big move is coming.
+                    </p>
+                    <p className="text-gray-600 text-xs italic">
+                      Like guardrails on a road—price tends to stay between them and bounces back when it hits.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-12 p-6 bg-white/5 rounded-lg border border-white/5 max-w-3xl mx-auto">
+                  <h3 className="text-white font-medium mb-2">Signal Summary</h3>
+                  <p className="text-gray-500 text-sm">
+                    Our algorithmic analysis combines all these indicators to give you a simple bullish,
+                    bearish, or neutral signal. It evaluates RSI levels, MACD crossovers,
+                    price position relative to moving averages, and volume patterns to
+                    generate an overall market sentiment summary.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Loading state */}
+        {/* Loading */}
         {isLoading && (
-          <div className="space-y-6 stagger-children">
-            <div className="h-40 skeleton rounded-2xl" />
-            <div className="h-[400px] skeleton rounded-2xl" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="h-64 skeleton rounded-2xl" />
-              <div className="h-64 skeleton rounded-2xl" />
-            </div>
-          </div>
-        )}
-
-        {/* Error state */}
-        {error && (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-6">
-            <div className="text-6xl text-amber-400">
-              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
+          <div className="min-h-[80vh] flex items-center justify-center">
             <div className="text-center">
-              <h3 className="text-2xl font-bold text-white mb-2">Something went wrong</h3>
-              <p className="text-slate-400">{error}</p>
+              <div className="w-8 h-8 border-2 border-gray-800 border-t-white rounded-full animate-spin mx-auto" />
+              <p className="text-gray-500 mt-4 text-sm">{currentTicker}</p>
             </div>
-            <div className="w-full max-w-xl">
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="min-h-[80vh] flex items-center justify-center px-6">
+            <div className="max-w-md w-full text-center">
+              <p className="text-red-400 mb-6">{error}</p>
               <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
             </div>
           </div>
         )}
 
-        {/* Stock dashboard */}
+        {/* Dashboard */}
         {stockData && !isLoading && (
-          <div className="space-y-6 stagger-children">
-            {/* Mobile search */}
-            <div className="md:hidden">
-              <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
-            </div>
-
-            {/* Stock header */}
-            <StockHeader quote={stockData.quote} />
-
-            {/* Main content grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              {/* Left column - Charts */}
-              <div className="xl:col-span-2 space-y-6">
-                <PriceChart
-                  historical={stockData.historical}
-                  indicators={stockData.indicators}
-                  onPeriodChange={handlePeriodChange}
-                  currentPeriod={currentPeriod}
-                />
-                <IndicatorsPanel
-                  historical={stockData.historical}
-                  indicators={stockData.indicators}
-                />
+          <div className="max-w-5xl mx-auto px-6 py-8">
+            <div className="space-y-6">
+              <div className="md:hidden">
+                <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
               </div>
 
-              {/* Right column - AI Summary & Volume */}
-              <div className="space-y-6">
-                <AISummaryCard analysis={stockData.analysis} />
-                <VolumeChart
-                  historical={stockData.historical}
-                  indicators={stockData.indicators}
-                />
+              <StockHeader quote={stockData.quote} />
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  <PriceChart
+                    historical={stockData.historical}
+                    indicators={stockData.indicators}
+                    onPeriodChange={handlePeriodChange}
+                    currentPeriod={currentPeriod}
+                  />
+                  <IndicatorsPanel
+                    historical={stockData.historical}
+                    indicators={stockData.indicators}
+                  />
+                </div>
+
+                <div className="space-y-6">
+                  <AISummaryCard analysis={stockData.analysis} />
+                  <VolumeChart
+                    historical={stockData.historical}
+                    indicators={stockData.indicators}
+                  />
+                </div>
               </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Footer */}
-      <footer className="mt-16 py-8 border-t border-slate-700/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-slate-500">
-            Data provided by Yahoo Finance. For informational purposes only. Not financial advice.
-          </p>
-        </div>
-      </footer>
     </main>
-  );
-}
-
-function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
-  const renderIcon = () => {
-    switch (icon) {
-      case 'chart':
-        return (
-          <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-        );
-      case 'trending':
-        return (
-          <svg className="w-8 h-8 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-        );
-      case 'cpu':
-        return (
-          <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="group cursor-pointer">
-      <div className="p-6 bg-slate-800/50 border border-slate-700/50 rounded-2xl hover:border-slate-600 transition-colors">
-        <div className="mb-3">{renderIcon()}</div>
-        <h3 className="text-lg font-bold text-white mb-1">{title}</h3>
-        <p className="text-sm text-slate-400">{description}</p>
-      </div>
-    </div>
   );
 }
