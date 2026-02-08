@@ -84,18 +84,18 @@ export default function Home() {
                 <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
               </div>
 
-              <div className="grid grid-cols-3 gap-8 max-w-lg mx-auto text-sm mb-24">
-                <div>
+              <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto text-sm mb-24">
+                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
                   <p className="text-white font-medium mb-1">Technical</p>
-                  <p className="text-gray-500">RSI, MACD, SMA</p>
+                  <p className="text-gray-500 text-xs">RSI, MACD, SMA</p>
                 </div>
-                <div>
+                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
                   <p className="text-white font-medium mb-1">Charts</p>
-                  <p className="text-gray-500">Interactive overlays</p>
+                  <p className="text-gray-500 text-xs">Interactive overlays</p>
                 </div>
-                <div>
+                <div className="p-4 bg-white/5 rounded-lg border border-white/5">
                   <p className="text-white font-medium mb-1">Signals</p>
-                  <p className="text-gray-500">Algorithmic analysis</p>
+                  <p className="text-gray-500 text-xs">Algorithmic analysis</p>
                 </div>
               </div>
 
