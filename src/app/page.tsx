@@ -7,6 +7,7 @@ import PriceChart from '@/components/PriceChart';
 import VolumeChart from '@/components/VolumeChart';
 import IndicatorsPanel from '@/components/IndicatorsPanel';
 import AISummaryCard from '@/components/AISummary';
+import OptionsChain from '@/components/OptionsChain';
 import ThemeToggle from '@/components/ThemeToggle';
 import { StockData } from '@/types/stock';
 
@@ -225,6 +226,8 @@ export default function Home() {
                   />
                 </div>
               </div>
+
+              <OptionsChain ticker={currentTicker} />
             </div>
           </div>
         )}
