@@ -69,3 +69,26 @@ export interface AnalysisSummary {
     reason: string;
   }[];
 }
+
+export interface OptionContract {
+  contractSymbol: string;
+  strike: number;
+  lastPrice: number;
+  change: number;
+  percentChange: number;
+  volume: number;
+  openInterest: number;
+  bid: number;
+  ask: number;
+  impliedVolatility: number;
+  inTheMoney: boolean;
+  expiration: string;
+}
+
+export interface OptionsData {
+  expirationDates: string[];
+  strikes: number[];
+  calls: OptionContract[];
+  puts: OptionContract[];
+  underlyingPrice: number;
+}

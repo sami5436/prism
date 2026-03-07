@@ -15,7 +15,7 @@ export async function searchTickers(query: string): Promise<SearchResult[]> {
         const results: any = await yahooFinance.search(query, {
             newsCount: 0,
             quotesCount: 10,
-        });
+        }, { validateResult: false });
 
         const quotes = results?.quotes || [];
 
@@ -113,5 +113,53 @@ export async function getHistoricalData(
     } catch (error) {
         console.error('Historical data error:', error);
         return [];
+    }
+}
+
+/**
+ * Get options chain data for a stock
+ */
+export async function getOptionsChain(symbol: string, date?: string) {
+    try {
+        const queryOptions: any = {};
+        if (date) {
+            queryOptions.date = new Date(date);
+        }
+
+        const data: any = await yahooFinance.options(symbol, queryOptions, { validateResult: false });
+
+        const expirationDates = (data?.expirationDates || []).map((d: Date) =>
+            new Date(d).toISOString().split('T')[0]
+        );
+
+        const strikes = data?.strikes || [];
+        const optionSet = data?.options?.[0];
+        const underlyingPrice = data?.quote?.regularMarketPrice || 0;
+
+        const mapContract = (c: any) => ({
+            contractSymbol: c.contractSymbol || '',
+            strike: c.strike || 0,
+            lastPrice: c.lastPrice || 0,
+            change: c.change || 0,
+            percentChange: c.percentChange || 0,
+            volume: c.volume || 0,
+            openInterest: c.openInterest || 0,
+            bid: c.bid || 0,
+            ask: c.ask || 0,
+            impliedVolatility: c.impliedVolatility || 0,
+            inTheMoney: c.inTheMoney || false,
+            expiration: c.expiration ? new Date(c.expiration).toISOString().split('T')[0] : '',
+        });
+
+        return {
+            expirationDates,
+            strikes,
+            calls: (optionSet?.calls || []).map(mapContract),
+            puts: (optionSet?.puts || []).map(mapContract),
+            underlyingPrice,
+        };
+    } catch (error) {
+        console.error('Options chain error:', error);
+        return null;
     }
 }
