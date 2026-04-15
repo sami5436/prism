@@ -10,7 +10,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Prism', href: '/', matchPrefix: '/' },
+  { label: 'Stocks', href: '/', matchPrefix: '/' },
   { label: 'Balance Sheet', href: '/balance-sheet', matchPrefix: '/balance-sheet' },
 ];
 

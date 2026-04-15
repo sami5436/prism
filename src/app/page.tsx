@@ -80,36 +80,129 @@ export default function Home() {
       <div className="pt-16">
         {/* Landing page */}
         {!stockData && !isLoading && !error && (
-          <div className="min-h-[90vh] flex flex-col items-center justify-center px-6 pt-24">
-            <div className="max-w-2xl w-full text-center">
-              <h1 className="text-5xl md:text-7xl font-semibold tracking-tight mb-6" style={{ color: 'var(--text-primary)' }}>
+          <div className="min-h-[90vh] flex flex-col items-center px-4 sm:px-6 pt-20 sm:pt-28">
+            <div className="max-w-3xl w-full text-center">
+              {/* Brand hero */}
+              <h1 className="text-5xl md:text-7xl font-semibold tracking-tight mb-4" style={{ color: 'var(--text-primary)' }}>
                 Prism.
               </h1>
-              <p className="text-xl md:text-2xl font-light mb-12" style={{ color: 'var(--text-secondary)' }}>
-                Stock analysis, simplified.
+              <p className="text-lg md:text-xl font-light mb-16 max-w-md mx-auto" style={{ color: 'var(--text-secondary)' }}>
+                Your toolkit for stock analysis and financial intelligence.
               </p>
 
-              <div className="max-w-md mx-auto mb-16">
-                <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
-              </div>
+              {/* Module cards — symmetric grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-20 text-left">
+                {/* Stock Analysis module */}
+                <div
+                  className="rounded-2xl p-6 sm:p-8 flex flex-col"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    minHeight: '320px',
+                  }}
+                >
+                  {/* Module icon + label */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(168, 162, 255, 0.1)' }}
+                    >
+                      <svg className="w-5 h-5" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        Stock Analysis
+                      </h2>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Technical indicators & signals</p>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto text-sm mb-24">
-                <div className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Technical</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>RSI, MACD, SMA</p>
+                  {/* Feature list */}
+                  <ul className="space-y-2.5 mb-6 flex-1">
+                    {[
+                      'RSI, MACD, SMA & Bollinger Bands',
+                      'Interactive price & volume charts',
+                      'Algorithmic signal analysis',
+                      'Full options chain data',
+                    ].map(feat => (
+                      <li key={feat} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        {feat}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Inline ticker search */}
+                  <div>
+                    <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Search a ticker to begin</p>
+                    <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
+                  </div>
                 </div>
-                <div className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Charts</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Interactive overlays</p>
+
+                {/* Balance Sheet Analyzer module */}
+                <div
+                  className="rounded-2xl p-6 sm:p-8 flex flex-col"
+                  style={{
+                    background: 'var(--bs-card-bg)',
+                    border: '1px solid var(--bs-accent-border)',
+                    minHeight: '320px',
+                  }}
+                >
+                  {/* Module icon + label */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'var(--bs-accent-dim)' }}
+                    >
+                      <svg className="w-5 h-5" style={{ color: 'var(--bs-accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        Balance Sheet
+                      </h2>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Upload & analyze filings</p>
+                    </div>
+                  </div>
+
+                  {/* Feature list */}
+                  <ul className="space-y-2.5 mb-6 flex-1">
+                    {[
+                      'PDF, XBRL & XML file parsing',
+                      'Key line item extraction',
+                      'Financial ratio computation',
+                      'Risk flagging & YoY detection',
+                    ].map(feat => (
+                      <li key={feat} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--bs-accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        {feat}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <a
+                    href="/balance-sheet"
+                    className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all"
+                    style={{
+                      background: 'var(--bs-accent)',
+                      color: '#000',
+                    }}
+                    id="hub-bs-cta"
+                  >
+                    Upload a Balance Sheet
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </a>
                 </div>
-                <div className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Signals</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Algorithmic analysis</p>
-                </div>
-                <a href="/balance-sheet" className="p-4 rounded-lg transition-colors" style={{ background: 'var(--bs-accent-dim)', border: '1px solid var(--bs-accent-border)' }}>
-                  <p className="font-medium mb-1" style={{ color: 'var(--bs-accent)' }}>Balance Sheet</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Upload &amp; analyze</p>
-                </a>
               </div>
 
               {/* Indicators Explainer */}
@@ -122,53 +215,38 @@ export default function Home() {
                   Here&apos;s what each one tells you.
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto text-left">
-                  <div className="p-6 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                    <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>RSI (Relative Strength Index)</h3>
-                    <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
-                      Measures momentum on a scale of 0-100. Above 70 suggests overbought (may drop),
-                      below 30 suggests oversold (may rise).
-                    </p>
-                    <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                      Think of it like a speedometer—when it&apos;s too high, you might need to slow down.
-                    </p>
-                  </div>
-
-                  <div className="p-6 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                    <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>MACD</h3>
-                    <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
-                      Shows the relationship between two moving averages. When MACD crosses above
-                      the signal line, it&apos;s bullish. Below is bearish.
-                    </p>
-                    <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                      Like comparing a fast runner to a slow one—when the fast one pulls ahead, momentum is building.
-                    </p>
-                  </div>
-
-                  <div className="p-6 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                    <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Moving Averages (SMA/EMA)</h3>
-                    <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
-                      Smooth out price data to show trends. When price is above the average,
-                      the trend is up. SMA 50 and 200 crossovers are key signals.
-                    </p>
-                    <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                      Like your GPA—it smooths out daily grades to show your overall performance trend.
-                    </p>
-                  </div>
-
-                  <div className="p-6 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                    <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Bollinger Bands</h3>
-                    <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>
-                      Shows volatility with upper and lower bands. Price touching bands often
-                      reverses. Narrow bands suggest a big move is coming.
-                    </p>
-                    <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                      Like guardrails on a road—price tends to stay between them and bounces back when it hits.
-                    </p>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto text-left">
+                  {[
+                    {
+                      title: 'RSI (Relative Strength Index)',
+                      desc: 'Measures momentum on a scale of 0-100. Above 70 suggests overbought (may drop), below 30 suggests oversold (may rise).',
+                      analogy: 'Think of it like a speedometer—when it\u0027s too high, you might need to slow down.',
+                    },
+                    {
+                      title: 'MACD',
+                      desc: 'Shows the relationship between two moving averages. When MACD crosses above the signal line, it\u0027s bullish. Below is bearish.',
+                      analogy: 'Like comparing a fast runner to a slow one—when the fast one pulls ahead, momentum is building.',
+                    },
+                    {
+                      title: 'Moving Averages (SMA/EMA)',
+                      desc: 'Smooth out price data to show trends. When price is above the average, the trend is up. SMA 50 and 200 crossovers are key signals.',
+                      analogy: 'Like your GPA—it smooths out daily grades to show your overall performance trend.',
+                    },
+                    {
+                      title: 'Bollinger Bands',
+                      desc: 'Shows volatility with upper and lower bands. Price touching bands often reverses. Narrow bands suggest a big move is coming.',
+                      analogy: 'Like guardrails on a road—price tends to stay between them and bounces back when it hits.',
+                    },
+                  ].map(item => (
+                    <div key={item.title} className="p-6 rounded-xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                      <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{item.title}</h3>
+                      <p className="text-sm mb-3" style={{ color: 'var(--text-muted)' }}>{item.desc}</p>
+                      <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>{item.analogy}</p>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="mt-12 p-6 rounded-lg max-w-3xl mx-auto" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                <div className="mt-10 p-6 rounded-xl max-w-3xl mx-auto" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                   <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Signal Summary</h3>
                   <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                     Our algorithmic analysis combines all these indicators to give you a simple bullish,
