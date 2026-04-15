@@ -9,6 +9,7 @@ import IndicatorsPanel from '@/components/IndicatorsPanel';
 import AISummaryCard from '@/components/AISummary';
 import OptionsChain from '@/components/OptionsChain';
 import ThemeToggle from '@/components/ThemeToggle';
+import ModuleNav from '@/components/shared/ModuleNav';
 import { StockData } from '@/types/stock';
 
 export default function Home() {
@@ -57,9 +58,12 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md" style={{ background: 'var(--bg-primary)', opacity: 0.95, borderBottom: '1px solid var(--border-color)' }}>
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <a href="/" className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Prism.
-            </a>
+            <div className="flex items-center gap-4">
+              <a href="/" className="text-xl font-medium tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                Prism.
+              </a>
+              <ModuleNav />
+            </div>
 
             <div className="flex items-center gap-4">
               {stockData && (
@@ -89,7 +93,7 @@ export default function Home() {
                 <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
               </div>
 
-              <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto text-sm mb-24">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto text-sm mb-24">
                 <div className="p-4 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                   <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Technical</p>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>RSI, MACD, SMA</p>
@@ -102,6 +106,10 @@ export default function Home() {
                   <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Signals</p>
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Algorithmic analysis</p>
                 </div>
+                <a href="/balance-sheet" className="p-4 rounded-lg transition-colors" style={{ background: 'var(--bs-accent-dim)', border: '1px solid var(--bs-accent-border)' }}>
+                  <p className="font-medium mb-1" style={{ color: 'var(--bs-accent)' }}>Balance Sheet</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Upload &amp; analyze</p>
+                </a>
               </div>
 
               {/* Indicators Explainer */}

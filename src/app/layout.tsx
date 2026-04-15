@@ -4,8 +4,8 @@ import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata: Metadata = {
   title: "Prism.",
-  description: "Stock analysis, simplified. Technical indicators, interactive charts, and algorithmic signals.",
-  keywords: ["stock analysis", "technical indicators", "RSI", "MACD", "trading"],
+  description: "Stock analysis and financial statement tools. Technical indicators, charts, and balance sheet analysis.",
+  keywords: ["stock analysis", "technical indicators", "RSI", "MACD", "trading", "balance sheet", "financial analysis"],
   openGraph: {
     title: "Prism.",
     description: "Stock analysis, simplified.",

@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prism.
+
+Stock analysis and financial statement tools built with Next.js.
+
+## Modules
+
+### Prism — Stock Analysis
+Technical indicators (RSI, MACD, SMA, Bollinger Bands), interactive charts, options chains, and algorithmic signals.
+
+### Balance Sheet Analyzer
+Upload balance sheet documents (PDF, XBRL, XML) to extract, normalize, and analyze key financial data.
+
+**What it does:**
+- Extracts key balance sheet line items (cash, assets, liabilities, equity, etc.)
+- Computes financial ratios: current ratio, debt-to-equity, working capital
+- Detects YoY changes and flags potential concerns
+- Generates deterministic, template-based summaries (no LLM)
+- Supports PDF table extraction and XBRL/US-GAAP taxonomy parsing
+
+**Current limitations (V1):**
+- Single-document analysis only (no multi-statement support)
+- PDF parsing relies on table extraction — unstructured or image-based PDFs may not parse well
+- No persistent storage — results are session-only
+- No authentication
+- XBRL parser covers common US-GAAP tags but not all possible taxonomies
+- No IFRS support yet
+
+**Extension points:**
+- Additional parsers can be added in `services/balance-sheet/parsers/` (implement `BaseParser`)
+- New ratio computations in `services/balance-sheet/engine/ratios.py`
+- New flag rules in `services/balance-sheet/engine/summary.py`
+- Income statement and cash flow analysis modules
+- Cross-linking with Prism stock indicators for the same company
+- Persistent storage and comparison history
+- IFRS taxonomy support in the XBRL parser
 
 ## Getting Started
 
-First, run the development server:
+### Frontend (Next.js)
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Balance Sheet Python Service
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd services/balance-sheet
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
 
-## Learn More
+The service runs at `http://localhost:8000`. The Next.js dev server proxies `/api/balance-sheet/*` requests to it automatically.
 
-To learn more about Next.js, take a look at the following resources:
+## Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+prism/
+├── src/                              # Next.js frontend
+│   ├── app/                          # App Router pages
+│   │   ├── page.tsx                  # Prism stock analysis home
+│   │   ├── balance-sheet/            # Balance Sheet Analyzer
+│   │   │   ├── layout.tsx            # Shared header/nav
+│   │   │   ├── page.tsx              # Upload page
+│   │   │   └── results/page.tsx      # Results display
+│   │   └── api/                      # API routes
+│   ├── components/
+│   │   ├── balance-sheet/            # BS-specific components
+│   │   └── shared/                   # Cross-module components
+│   ├── types/                        # TypeScript interfaces
+│   └── lib/                          # Client utilities
+├── services/
+│   └── balance-sheet/                # Python FastAPI service
+│       ├── parsers/                  # PDF + XBRL parsers
+│       ├── normalizer/               # Field normalization
+│       ├── engine/                   # Ratios + summary generation
+│       ├── models/                   # Pydantic schemas
+│       └── routers/                  # API endpoints
+└── docs/
+    └── changelog.md                  # Development log
+```
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The Next.js frontend deploys to Vercel. The Python service needs a separate hosting solution (Railway, Fly.io, etc.).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Set `BALANCE_SHEET_SERVICE_URL` environment variable in Vercel to point to your deployed Python service.
