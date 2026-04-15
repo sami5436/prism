@@ -4,7 +4,8 @@ const PYTHON_SERVICE_URL = process.env.BALANCE_SHEET_SERVICE_URL || 'http://loca
 
 /**
  * Proxy file uploads to the Python balance-sheet service.
- * Accepts multipart/form-data with a 'file' field.
+ * In production, the Next.js rewrite in next.config.ts handles this automatically.
+ * This route serves as a direct fallback.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Forward to Python service
     const proxyFormData = new FormData();
     proxyFormData.append('file', file);
 
