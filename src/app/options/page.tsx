@@ -21,17 +21,6 @@ export default function OptionsPage() {
 
         {/* Page header */}
         <div className="mb-8">
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-4"
-            style={{
-              background: 'rgba(34,197,94,0.08)',
-              color: '#22c55e',
-              border: '1px solid rgba(34,197,94,0.2)',
-            }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e]" />
-            Options Chain
-          </div>
           <h1 className="text-3xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
             Options Chain
           </h1>
