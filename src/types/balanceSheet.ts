@@ -64,7 +64,7 @@ export interface BalanceSheetResult {
   periods: ExtractionPeriod[];
   ratios: BalanceSheetRatios;
   summary: BalanceSheetSummary;
-  sourceType: 'pdf' | 'xbrl' | 'manual';
+  sourceType: 'pdf' | 'xbrl' | 'html' | 'manual';
   overallConfidence: number; // 0-100
 }
 

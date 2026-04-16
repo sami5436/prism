@@ -2,13 +2,14 @@
 
 interface ConfidenceNoteProps {
   overallConfidence: number;
-  sourceType: 'pdf' | 'xbrl' | 'manual';
+  sourceType: 'pdf' | 'xbrl' | 'html' | 'manual';
   fileName?: string;
 }
 
 const sourceLabels: Record<string, string> = {
   pdf: 'PDF extraction',
   xbrl: 'XBRL structured data',
+  html: 'HTML filing',
   manual: 'Manual input',
 };
 

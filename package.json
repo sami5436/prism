@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@cedrugs/pdf-parse": "^1.0.0",
+    "fast-xml-parser": "^5.5.12",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
