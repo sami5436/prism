@@ -70,7 +70,7 @@ export default function UploadZone({ onFileSelect, isUploading, error }: UploadZ
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.xml,.xbrl"
+          accept=".xml,.xbrl,.htm,.html"
           onChange={handleChange}
           className="hidden"
           id="bs-file-input"
@@ -109,7 +109,7 @@ export default function UploadZone({ onFileSelect, isUploading, error }: UploadZ
                 Drop your balance sheet here
               </p>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                or tap to browse · PDF, XML, XBRL
+                or tap to browse · HTM, XML, XBRL
               </p>
               <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
                 Max 25MB

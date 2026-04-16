@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import pdf from '@cedrugs/pdf-parse';
 import { RawExtraction, RawPeriod } from './types';
 
@@ -99,10 +98,12 @@ function extractCompanyName(text: string): string | null {
   return null;
 }
 
-export async function parsePDF(buffer: Buffer): Promise<RawExtraction> {
-  const data = await pdf(buffer);
-  const text = data.text || '';
-
+/**
+ * Shared text-based balance sheet extractor.
+ * Scans line-by-line, matches known labels, grabs the last number on the line.
+ * Used by both the PDF parser and the HTML parser (after HTML is flattened to text).
+ */
+export function extractFromText(text: string, confidence = 60): RawExtraction {
   const unit = detectUnit(text);
   const companyName = extractCompanyName(text);
 
@@ -111,16 +112,29 @@ export async function parsePDF(buffer: Buffer): Promise<RawExtraction> {
   const lines = text.split('\n');
 
   for (const line of lines) {
-    const fieldKey = matchField(line);
+    // Only treat as a balance-sheet row when the label is at the start of
+    // the line — this avoids prose like "…total assets increased by 5%…"
+    // poisoning the extraction.
+    const head = line.slice(0, 80);
+    const fieldKey = matchField(head);
     if (!fieldKey) continue;
 
-    const numbers = line.match(/[\d,]+\.?\d*/g);
+    const numbers = line.match(/\(?[\d,]+\.?\d*\)?/g);
     if (!numbers?.length) continue;
 
-    const val = parseNumber(numbers[numbers.length - 1]);
+    // Pick the first "large" number on the row. Balance-sheet figures are
+    // comma-grouped (contains a comma) or at least 3 digits — this filters
+    // out note references ("13"), years, and small footnote markers.
+    const candidate = numbers.find(n => {
+      const digits = n.replace(/[^\d]/g, '');
+      return n.includes(',') || digits.length >= 3;
+    });
+    if (!candidate) continue;
+
+    const val = parseNumber(candidate);
     if (val !== null && !(fieldKey in items)) {
       items[fieldKey] = val;
-      confidenceScores[fieldKey] = 60;
+      confidenceScores[fieldKey] = confidence;
     }
   }
 
@@ -137,4 +151,10 @@ export async function parsePDF(buffer: Buffer): Promise<RawExtraction> {
     periods: [period],
     confidenceScores,
   };
+}
+
+export async function parsePDF(buffer: Buffer): Promise<RawExtraction> {
+  const data = await pdf(buffer);
+  const text = data.text || '';
+  return extractFromText(text, 60);
 }
