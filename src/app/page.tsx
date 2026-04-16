@@ -250,9 +250,6 @@ export default function Home() {
         {stockData && !isLoading && (
           <div className="max-w-5xl mx-auto px-6 py-8">
             <div className="space-y-6">
-              <div className="md:hidden">
-                <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
-              </div>
               <StockHeader quote={stockData.quote} />
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
