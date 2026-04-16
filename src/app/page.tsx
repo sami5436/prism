@@ -100,7 +100,7 @@ export default function Home() {
                     </div>
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">
-                    {['RSI, MACD, SMA & Bollinger Bands', 'Interactive price & volume charts', 'Algorithmic signal analysis'].map(f => (
+                    {['RSI, MACD, SMA & Bollinger Bands', 'Interactive price & volume charts', 'Algorithmic signal analysis', 'AI-generated market summary'].map(f => (
                       <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
                         <svg className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -109,32 +109,29 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                  <div>
-                    <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Search a ticker to begin</p>
-                    <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
-                  </div>
+                  <TickerSearch onSelect={handleTickerSelect} isLoading={isLoading} />
                 </div>
 
                 {/* Balance Sheet */}
                 <div
                   className="rounded-2xl p-6 flex flex-col"
-                  style={{ background: 'var(--bs-card-bg)', border: '1px solid var(--bs-accent-border)', minHeight: '300px' }}
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', minHeight: '300px' }}
                 >
                   <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--bs-accent-dim)' }}>
-                      <svg className="w-5 h-5" style={{ color: 'var(--bs-accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(168,162,255,0.1)' }}>
+                      <svg className="w-5 h-5" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
                     </div>
                     <div>
                       <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Balance Sheet</h2>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>EDGAR & XBRL filings</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>SEC filings & ratios</p>
                     </div>
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">
-                    {['Live EDGAR ticker lookup', 'iXBRL & XBRL file parsing', 'Financial ratio computation', 'Risk flagging & multi-period'].map(f => (
+                    {['Live EDGAR ticker lookup', 'Key line item extraction', 'Financial ratio computation', 'Risk flagging & multi-period'].map(f => (
                       <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        <svg className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--bs-accent)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         {f}
@@ -143,24 +140,21 @@ export default function Home() {
                   </ul>
                   <a
                     href="/balance-sheet"
-                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    style={{ background: 'var(--bs-accent)', color: '#000' }}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                    style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
                   >
                     Open Balance Sheet
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
                   </a>
                 </div>
 
                 {/* Options */}
                 <div
                   className="rounded-2xl p-6 flex flex-col"
-                  style={{ background: 'rgba(34,197,94,0.03)', border: '1px solid rgba(34,197,94,0.2)', minHeight: '300px' }}
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', minHeight: '300px' }}
                 >
                   <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(34,197,94,0.1)' }}>
-                      <svg className="w-5 h-5" style={{ color: '#22c55e' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(168,162,255,0.1)' }}>
+                      <svg className="w-5 h-5" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                     </div>
@@ -170,9 +164,9 @@ export default function Home() {
                     </div>
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">
-                    {['Volume & open interest by strike', 'Implied volatility surface', 'Put/call ratio', 'Expiration date selector'].map(f => (
+                    {['Volume & open interest by strike', 'Implied volatility by expiration', 'Put/call ratio', 'Expiration date selector'].map(f => (
                       <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        <svg className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#22c55e' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         {f}
@@ -181,13 +175,10 @@ export default function Home() {
                   </ul>
                   <a
                     href="/options"
-                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
-                    style={{ background: '#22c55e', color: '#000' }}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                    style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
                   >
-                    Open Options Chain
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
+                    Open Options
                   </a>
                 </div>
               </div>
