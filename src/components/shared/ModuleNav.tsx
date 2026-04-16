@@ -10,17 +10,16 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Stocks', href: '/', matchPrefix: '/' },
+  { label: 'Indicators', href: '/', matchPrefix: '/' },
   { label: 'Balance Sheet', href: '/balance-sheet', matchPrefix: '/balance-sheet' },
+  { label: 'Options', href: '/options', matchPrefix: '/options' },
 ];
 
 export default function ModuleNav() {
   const pathname = usePathname();
 
   const isActive = (item: NavItem) => {
-    if (item.matchPrefix === '/') {
-      return pathname === '/';
-    }
+    if (item.matchPrefix === '/') return pathname === '/';
     return pathname.startsWith(item.matchPrefix);
   };
 
