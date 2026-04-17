@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { lookupCik, fetchCompanyFacts, companyFactsToRawExtraction } from '@/lib/balance-sheet/edgarApi';
 import { buildResult } from '@/lib/balance-sheet/pipeline';
+import { rateLimitResponse } from '@/lib/rateLimit';
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitResponse(request, { limit: 20, windowMs: 60_000, scope: 'bs-ticker' });
+  if (limited) return limited;
+
   try {
     const body = await request.json().catch(() => null);
     const ticker: string | undefined = body?.ticker;

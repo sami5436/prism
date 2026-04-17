@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getHistoricalData, getOptionsChain } from '@/lib/yahooFinance';
 import { rollingRealizedVol, computeIVRank, atmCallIV } from '@/lib/volatility';
+import { rateLimitResponse } from '@/lib/rateLimit';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ ticker: string }> }
 ) {
+  const limited = rateLimitResponse(request, { limit: 30, windowMs: 60_000, scope: 'iv-rank' });
+  if (limited) return limited;
+
   const { ticker } = await params;
   if (!ticker) {
     return NextResponse.json({ error: 'Ticker symbol required' }, { status: 400 });

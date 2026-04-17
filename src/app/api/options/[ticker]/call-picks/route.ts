@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOptionsChain } from '@/lib/yahooFinance';
+import { rateLimitResponse } from '@/lib/rateLimit';
 import {
   scoreBuyCandidates,
   scoreSellCandidates,
@@ -22,6 +23,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ ticker: string }> }
 ) {
+  const limited = rateLimitResponse(request, { limit: 20, windowMs: 60_000, scope: 'call-picks' });
+  if (limited) return limited;
+
   const { ticker } = await params;
   if (!ticker) {
     return NextResponse.json({ error: 'Ticker symbol required' }, { status: 400 });

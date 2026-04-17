@@ -6,61 +6,75 @@ import YahooFinance from 'yahoo-finance2';
 
 const yahooFinance = new YahooFinance();
 import { StockQuote, HistoricalDataPoint, SearchResult } from '@/types/stock';
+import { memoize } from './cache';
+
+// TTLs chosen to balance freshness vs upstream load.
+// Intraday data (chain, quote) is short; end-of-day series are long.
+const TTL = {
+  search: 5 * 60 * 1000,          // 5 min
+  quote: 30 * 1000,               // 30 s
+  historical: 60 * 60 * 1000,     // 1 h (daily bars)
+  optionsChain: 60 * 1000,        // 1 min
+} as const;
 
 /**
  * Search for stock tickers matching a query
  */
 export async function searchTickers(query: string): Promise<SearchResult[]> {
-    try {
-        const results: any = await yahooFinance.search(query, {
-            newsCount: 0,
-            quotesCount: 10,
-        }, { validateResult: false });
+    return memoize('yf:search', query.toLowerCase(), TTL.search, async () => {
+        try {
+            const results: any = await yahooFinance.search(query, {
+                newsCount: 0,
+                quotesCount: 10,
+            }, { validateResult: false });
 
-        const quotes = results?.quotes || [];
+            const quotes = results?.quotes || [];
 
-        return quotes
-            .filter((q: any) => typeof q?.symbol === 'string' && q.symbol.length > 0)
-            .map((q: any) => ({
-                symbol: q.symbol,
-                name: q.shortname || q.symbol,
-                exchange: q.exchange || 'Unknown',
-                type: q.quoteType || 'Equity',
-            }));
-    } catch (error) {
-        console.error('Search error:', error);
-        return [];
-    }
+            return quotes
+                .filter((q: any) => typeof q?.symbol === 'string' && q.symbol.length > 0)
+                .map((q: any) => ({
+                    symbol: q.symbol,
+                    name: q.shortname || q.symbol,
+                    exchange: q.exchange || 'Unknown',
+                    type: q.quoteType || 'Equity',
+                }));
+        } catch (error) {
+            console.error('Search error:', error);
+            return [];
+        }
+    });
 }
 
 /**
  * Get current quote for a stock
  */
 export async function getQuote(symbol: string): Promise<StockQuote | null> {
-    try {
-        const quote: any = await yahooFinance.quote(symbol);
+    return memoize('yf:quote', symbol.toUpperCase(), TTL.quote, async () => {
+        try {
+            const quote: any = await yahooFinance.quote(symbol);
 
-        if (!quote) return null;
+            if (!quote) return null;
 
-        return {
-            symbol: quote.symbol,
-            name: quote.longName || quote.shortName || quote.symbol,
-            price: quote.regularMarketPrice || 0,
-            change: quote.regularMarketChange || 0,
-            changePercent: quote.regularMarketChangePercent || 0,
-            high: quote.regularMarketDayHigh || 0,
-            low: quote.regularMarketDayLow || 0,
-            open: quote.regularMarketOpen || 0,
-            previousClose: quote.regularMarketPreviousClose || 0,
-            volume: quote.regularMarketVolume || 0,
-            avgVolume: quote.averageDailyVolume10Day || 0,
-            marketCap: quote.marketCap || 0,
-            exchange: quote.exchange || 'Unknown',
-        };
-    } catch (error) {
-        console.error('Quote error:', error);
-        return null;
-    }
+            return {
+                symbol: quote.symbol,
+                name: quote.longName || quote.shortName || quote.symbol,
+                price: quote.regularMarketPrice || 0,
+                change: quote.regularMarketChange || 0,
+                changePercent: quote.regularMarketChangePercent || 0,
+                high: quote.regularMarketDayHigh || 0,
+                low: quote.regularMarketDayLow || 0,
+                open: quote.regularMarketOpen || 0,
+                previousClose: quote.regularMarketPreviousClose || 0,
+                volume: quote.regularMarketVolume || 0,
+                avgVolume: quote.averageDailyVolume10Day || 0,
+                marketCap: quote.marketCap || 0,
+                exchange: quote.exchange || 'Unknown',
+            };
+        } catch (error) {
+            console.error('Quote error:', error);
+            return null;
+        }
+    });
 }
 
 /**
@@ -70,6 +84,7 @@ export async function getHistoricalData(
     symbol: string,
     period: '1mo' | '3mo' | '6mo' | '1y' | '2y' = '1y'
 ): Promise<HistoricalDataPoint[]> {
+  return memoize('yf:historical', `${symbol.toUpperCase()}:${period}`, TTL.historical, async () => {
     try {
         const endDate = new Date();
         const startDate = new Date();
@@ -114,12 +129,14 @@ export async function getHistoricalData(
         console.error('Historical data error:', error);
         return [];
     }
+  });
 }
 
 /**
  * Get options chain data for a stock
  */
 export async function getOptionsChain(symbol: string, date?: string) {
+  return memoize('yf:options', `${symbol.toUpperCase()}:${date ?? 'default'}`, TTL.optionsChain, async () => {
     try {
         const queryOptions: any = {};
         if (date) {
@@ -162,4 +179,5 @@ export async function getOptionsChain(symbol: string, date?: string) {
         console.error('Options chain error:', error);
         return null;
     }
+  });
 }

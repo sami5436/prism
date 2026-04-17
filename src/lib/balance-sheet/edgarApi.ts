@@ -2,8 +2,11 @@
 // https://www.sec.gov/edgar/sec-api-documentation
 
 import { RawExtraction, RawPeriod } from './types';
+import { memoize } from '../cache';
 
 const EDGAR_USER_AGENT = 'Prism Financial Tools sami5436@prism.local';
+const EDGAR_TICKERS_TTL = 24 * 60 * 60 * 1000; // 24h — ticker list rarely changes
+const EDGAR_FACTS_TTL = 60 * 60 * 1000;        // 1h — filings are infrequent
 
 // Priority-ordered list of (US-GAAP concept, field key) pairs.
 // First match wins for a given field within a period.
@@ -99,16 +102,20 @@ interface CompanyFacts {
 
 /** Resolve a ticker symbol to a zero-padded 10-digit CIK string. */
 export async function lookupCik(ticker: string): Promise<string | null> {
-  const res = await fetch('https://www.sec.gov/files/company_tickers.json', {
-    headers: { 'User-Agent': EDGAR_USER_AGENT },
-    next: { revalidate: 3600 },
-  } as RequestInit);
+  const data = await memoize(
+    'edgar:tickers',
+    'all',
+    EDGAR_TICKERS_TTL,
+    async () => {
+      const res = await fetch('https://www.sec.gov/files/company_tickers.json', {
+        headers: { 'User-Agent': EDGAR_USER_AGENT },
+      });
+      if (!res.ok) throw new Error(`EDGAR tickers fetch failed: ${res.status}`);
+      return (await res.json()) as Record<string, { cik_str: number; ticker: string; title: string }>;
+    },
+  );
 
-  if (!res.ok) throw new Error(`EDGAR tickers fetch failed: ${res.status}`);
-
-  const data: Record<string, { cik_str: number; ticker: string; title: string }> = await res.json();
   const upper = ticker.toUpperCase().trim();
-
   for (const entry of Object.values(data)) {
     if (entry.ticker.toUpperCase() === upper) {
       return String(entry.cik_str).padStart(10, '0');
@@ -119,12 +126,14 @@ export async function lookupCik(ticker: string): Promise<string | null> {
 
 /** Fetch all XBRL company facts for a given padded CIK. */
 export async function fetchCompanyFacts(paddedCik: string): Promise<CompanyFacts> {
-  const res = await fetch(
-    `https://data.sec.gov/api/xbrl/companyfacts/CIK${paddedCik}.json`,
-    { headers: { 'User-Agent': EDGAR_USER_AGENT } }
-  );
-  if (!res.ok) throw new Error(`EDGAR companyfacts fetch failed: ${res.status}`);
-  return res.json() as Promise<CompanyFacts>;
+  return memoize('edgar:facts', paddedCik, EDGAR_FACTS_TTL, async () => {
+    const res = await fetch(
+      `https://data.sec.gov/api/xbrl/companyfacts/CIK${paddedCik}.json`,
+      { headers: { 'User-Agent': EDGAR_USER_AGENT } }
+    );
+    if (!res.ok) throw new Error(`EDGAR companyfacts fetch failed: ${res.status}`);
+    return (await res.json()) as CompanyFacts;
+  });
 }
 
 /**
