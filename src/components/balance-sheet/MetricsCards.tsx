@@ -5,6 +5,7 @@ import { BalanceSheetRatios } from '@/types/balanceSheet';
 interface MetricsCardsProps {
   ratios: BalanceSheetRatios;
   currency?: string;
+  unit?: string;
 }
 
 interface MetricConfig {
@@ -90,7 +91,14 @@ function getStatus(value: number | null, thresholds?: MetricConfig['thresholds']
   return 'critical';
 }
 
-function formatValue(value: number | null, format: string, currency: string): string {
+const UNIT_SCALE: Record<string, number> = {
+  units: 1,
+  thousands: 1e3,
+  millions: 1e6,
+  billions: 1e9,
+};
+
+function formatValue(value: number | null, format: string, currency: string, unit: string): string {
   if (value === null) return '—';
   switch (format) {
     case 'ratio':
@@ -98,12 +106,14 @@ function formatValue(value: number | null, format: string, currency: string): st
     case 'percent':
       return (value * 100).toFixed(1) + '%';
     case 'currency': {
-      const abs = Math.abs(value);
+      const scale = UNIT_SCALE[unit] ?? 1;
+      const absUsd = Math.abs(value) * scale;
       const sign = value < 0 ? '-' : '';
-      if (abs >= 1e9) return `${sign}${currency}${(abs / 1e9).toFixed(1)}B`;
-      if (abs >= 1e6) return `${sign}${currency}${(abs / 1e6).toFixed(1)}M`;
-      if (abs >= 1e3) return `${sign}${currency}${(abs / 1e3).toFixed(0)}K`;
-      return `${sign}${currency}${abs.toFixed(0)}`;
+      if (absUsd >= 1e12) return `${sign}${currency}${(absUsd / 1e12).toFixed(2)}T`;
+      if (absUsd >= 1e9) return `${sign}${currency}${(absUsd / 1e9).toFixed(2)}B`;
+      if (absUsd >= 1e6) return `${sign}${currency}${(absUsd / 1e6).toFixed(1)}M`;
+      if (absUsd >= 1e3) return `${sign}${currency}${(absUsd / 1e3).toFixed(0)}K`;
+      return `${sign}${currency}${absUsd.toFixed(0)}`;
     }
     default:
       return String(value);
@@ -117,7 +127,7 @@ const statusColors: Record<string, string> = {
   neutral: 'var(--text-secondary)',
 };
 
-export default function MetricsCards({ ratios, currency = '$' }: MetricsCardsProps) {
+export default function MetricsCards({ ratios, currency = '$', unit = 'units' }: MetricsCardsProps) {
   const availableMetrics = METRICS.filter(m => ratios[m.key] !== null);
 
   if (availableMetrics.length === 0) return null;
@@ -138,7 +148,7 @@ export default function MetricsCards({ ratios, currency = '$' }: MetricsCardsPro
             </p>
 
             <p className="text-xl sm:text-2xl font-semibold tabular-nums" style={{ color: statusColors[status] }}>
-              {formatValue(value, metric.format, currency)}
+              {formatValue(value, metric.format, currency, unit)}
             </p>
 
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>

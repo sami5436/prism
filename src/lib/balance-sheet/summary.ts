@@ -2,14 +2,22 @@
 
 import { NormalizedPeriod, ComputedRatios, AnalysisFlag, AnalysisSummaryResult } from './types';
 
-function fmt(value: number): string {
-  const abs = Math.abs(value);
+const UNIT_SCALE: Record<string, number> = {
+  units: 1,
+  thousands: 1e3,
+  millions: 1e6,
+  billions: 1e9,
+};
+
+function fmt(value: number, unit: string): string {
+  const scale = UNIT_SCALE[unit] ?? 1;
+  const absUsd = Math.abs(value) * scale;
   const sign = value < 0 ? '-' : '';
-  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(1)}T`;
-  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
-  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
-  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(0)}K`;
-  return `${sign}$${abs.toFixed(0)}`;
+  if (absUsd >= 1e12) return `${sign}$${(absUsd / 1e12).toFixed(2)}T`;
+  if (absUsd >= 1e9) return `${sign}$${(absUsd / 1e9).toFixed(2)}B`;
+  if (absUsd >= 1e6) return `${sign}$${(absUsd / 1e6).toFixed(1)}M`;
+  if (absUsd >= 1e3) return `${sign}$${(absUsd / 1e3).toFixed(0)}K`;
+  return `${sign}$${absUsd.toFixed(0)}`;
 }
 
 function detectYoYChanges(current: NormalizedPeriod, previous: NormalizedPeriod): AnalysisFlag[] {
@@ -43,7 +51,7 @@ function detectYoYChanges(current: NormalizedPeriod, previous: NormalizedPeriod)
   return flags;
 }
 
-export function generateSummary(periods: NormalizedPeriod[], ratios: ComputedRatios): AnalysisSummaryResult {
+export function generateSummary(periods: NormalizedPeriod[], ratios: ComputedRatios, unit: string = 'units'): AnalysisSummaryResult {
   if (!periods.length) {
     return { overview: 'No balance sheet data was extracted.', ratioNotes: [], flags: [] };
   }
@@ -54,9 +62,9 @@ export function generateSummary(periods: NormalizedPeriod[], ratios: ComputedRat
 
   // Overview
   const parts: string[] = [];
-  if (items.total_assets != null) parts.push(`total assets of ${fmt(items.total_assets)}`);
-  if (items.total_liabilities != null) parts.push(`total liabilities of ${fmt(items.total_liabilities)}`);
-  if (items.total_equity != null) parts.push(`total equity of ${fmt(items.total_equity)}`);
+  if (items.total_assets != null) parts.push(`total assets of ${fmt(items.total_assets, unit)}`);
+  if (items.total_liabilities != null) parts.push(`total liabilities of ${fmt(items.total_liabilities, unit)}`);
+  if (items.total_equity != null) parts.push(`total equity of ${fmt(items.total_equity, unit)}`);
   const overview = parts.length
     ? 'The balance sheet shows ' + parts.join(', ') + '.'
     : 'Balance sheet data was partially extracted. Some fields may be missing.';
@@ -89,7 +97,7 @@ export function generateSummary(periods: NormalizedPeriod[], ratios: ComputedRat
 
   // Working capital
   if (ratios.workingCapital != null && ratios.workingCapital < 0) {
-    flags.push({ id: 'negative_working_capital', label: 'Negative Working Capital', description: `Working capital is ${fmt(ratios.workingCapital)}.`, severity: 'warning', metric: 'working_capital', value: ratios.workingCapital });
+    flags.push({ id: 'negative_working_capital', label: 'Negative Working Capital', description: `Working capital is ${fmt(ratios.workingCapital, unit)}.`, severity: 'warning', metric: 'working_capital', value: ratios.workingCapital });
   }
 
   // Goodwill

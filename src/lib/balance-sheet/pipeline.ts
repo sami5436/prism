@@ -8,7 +8,7 @@ export type SourceType = 'pdf' | 'xbrl' | 'html';
 export function buildResult(rawExtraction: RawExtraction, sourceType: SourceType) {
   const periods = normalize(rawExtraction);
   const ratios = computeRatios(periods);
-  const summary = generateSummary(periods, ratios);
+  const summary = generateSummary(periods, ratios, rawExtraction.unit);
 
   const allConf = periods.flatMap(p => p.confidence.map(c => c.confidence));
   const overallConfidence = allConf.length

@@ -175,7 +175,7 @@ export default function BalanceSheetResultsPage() {
           <SummaryPanel summary={result.summary} companyName={result.companyName} />
 
           {/* Metrics cards */}
-          <MetricsCards ratios={result.ratios} currency={currencySymbol} />
+          <MetricsCards ratios={result.ratios} currency={currencySymbol} unit={result.unit} />
 
           {/* Two-column on desktop: table + highlights */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">

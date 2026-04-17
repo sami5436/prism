@@ -34,21 +34,24 @@ const ROWS: LineItemRow[] = [
   { key: 'totalEquity', label: 'Total Equity', isBold: true },
 ];
 
+const UNIT_SCALE: Record<string, number> = {
+  units: 1,
+  thousands: 1e3,
+  millions: 1e6,
+  billions: 1e9,
+};
+
 function formatAmount(value: number | null, unit: string): string {
   if (value === null) return '—';
-  const abs = Math.abs(value);
+  const scale = UNIT_SCALE[unit] ?? 1;
+  const absUsd = Math.abs(value) * scale;
   const sign = value < 0 ? '-' : '';
 
-  switch (unit) {
-    case 'millions':
-      return `${sign}${abs.toLocaleString(undefined, { maximumFractionDigits: 1 })}M`;
-    case 'thousands':
-      return `${sign}${abs.toLocaleString(undefined, { maximumFractionDigits: 0 })}K`;
-    case 'billions':
-      return `${sign}${abs.toLocaleString(undefined, { maximumFractionDigits: 2 })}B`;
-    default:
-      return `${sign}${abs.toLocaleString()}`;
-  }
+  if (absUsd >= 1e12) return `${sign}${(absUsd / 1e12).toFixed(2)}T`;
+  if (absUsd >= 1e9) return `${sign}${(absUsd / 1e9).toFixed(2)}B`;
+  if (absUsd >= 1e6) return `${sign}${(absUsd / 1e6).toFixed(1)}M`;
+  if (absUsd >= 1e3) return `${sign}${(absUsd / 1e3).toFixed(0)}K`;
+  return `${sign}${absUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
 export default function BalanceSheetTable({ periods, currency = '$', unit = 'units' }: BalanceSheetTableProps) {
@@ -61,7 +64,7 @@ export default function BalanceSheetTable({ periods, currency = '$', unit = 'uni
           Balance Sheet Snapshot
         </h3>
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          {currency} · {unit}
+          {currency} · auto-scaled
         </span>
       </div>
 
