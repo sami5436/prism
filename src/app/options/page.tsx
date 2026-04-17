@@ -3,6 +3,8 @@
 import { useState, useCallback } from 'react';
 import TickerSearch from '@/components/TickerSearch';
 import OptionsChain from '@/components/OptionsChain';
+import IVRankPanel from '@/components/IVRankPanel';
+import CallPicks from '@/components/CallPicks';
 
 export default function OptionsPage() {
   const [ticker, setTicker] = useState<string>('');
@@ -36,7 +38,11 @@ export default function OptionsPage() {
 
         {/* Options chain */}
         {ticker ? (
-          <OptionsChain ticker={ticker} />
+          <div className="space-y-6">
+            <IVRankPanel ticker={ticker} />
+            <CallPicks ticker={ticker} />
+            <OptionsChain ticker={ticker} />
+          </div>
         ) : (
           <div
             className="rounded-xl p-12 text-center"
