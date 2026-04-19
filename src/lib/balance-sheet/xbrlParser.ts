@@ -10,7 +10,17 @@
  */
 
 import { XMLParser } from 'fast-xml-parser';
-import { RawExtraction, RawPeriod } from './types';
+import { RawExtraction, RawPeriod, FormType } from './types';
+
+function normalizeFormType(raw: string | null): FormType {
+  if (!raw) return null;
+  const t = raw.trim().toUpperCase();
+  if (t.startsWith('10-K')) return '10-K';
+  if (t.startsWith('10-Q')) return '10-Q';
+  if (t.startsWith('20-F')) return '20-F';
+  if (t.startsWith('40-F')) return '40-F';
+  return 'other';
+}
 
 // Priority-ordered list of (US-GAAP concept, field key) pairs.
 const CONCEPT_FIELD_PRIORITY: [string, string][] = [
@@ -163,9 +173,10 @@ export function parseXBRL(xmlString: string): RawExtraction {
   const contexts = new Map<string, ContextMeta>();
   const facts: RawFact[] = [];
 
-  // Extract company name and filing date from DEI elements
+  // Extract company name, filing date, and form type from DEI elements
   let companyName: string | null = null;
   let filingDate: string | null = null;
+  let rawFormType: string | null = null;
 
   function scanDei(obj: Record<string, unknown>) {
     if (!obj || typeof obj !== 'object') return;
@@ -173,6 +184,13 @@ export function parseXBRL(xmlString: string): RawExtraction {
       const local = extractLocalName(key);
       if (local === 'EntityRegistrantName' && typeof value === 'string') companyName = value;
       if (local === 'DocumentPeriodEndDate' && typeof value === 'string') filingDate = value;
+      if (local === 'DocumentType') {
+        if (typeof value === 'string') rawFormType = value;
+        else if (typeof value === 'object' && value !== null) {
+          const t = (value as Record<string, unknown>)['#text'];
+          if (typeof t === 'string') rawFormType = t;
+        }
+      }
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         scanDei(value as Record<string, unknown>);
       }
@@ -239,6 +257,7 @@ export function parseXBRL(xmlString: string): RawExtraction {
   return {
     companyName,
     filingDate,
+    formType: normalizeFormType(rawFormType),
     currency: 'USD',
     unit: 'millions',
     periods: rawPeriods,
@@ -250,6 +269,7 @@ export function parseXBRL(xmlString: string): RawExtraction {
 function parseFlatXBRL(parsed: Record<string, unknown>): RawExtraction {
   let companyName: string | null = null;
   let filingDate: string | null = null;
+  let rawFormType: string | null = null;
   const items: Record<string, number | null> = {};
   const confidenceScores: Record<string, number> = {};
 
@@ -259,6 +279,7 @@ function parseFlatXBRL(parsed: Record<string, unknown>): RawExtraction {
       const local = extractLocalName(key);
       if (local === 'EntityRegistrantName' && typeof value === 'string') companyName = value;
       if (local === 'DocumentPeriodEndDate' && typeof value === 'string') filingDate = value;
+      if (local === 'DocumentType' && typeof value === 'string') rawFormType = value;
       const fieldKey = CONCEPT_TO_FIELD.get(local);
       if (fieldKey && !(fieldKey in items)) {
         const n = toNumber(value);
@@ -284,6 +305,7 @@ function parseFlatXBRL(parsed: Record<string, unknown>): RawExtraction {
   return {
     companyName,
     filingDate,
+    formType: normalizeFormType(rawFormType),
     currency: 'USD',
     unit: 'millions',
     periods: [{ label: filingDate ?? 'Extracted', rawItems: items }],

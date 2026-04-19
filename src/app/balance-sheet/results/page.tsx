@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BalanceSheetResult } from '@/types/balanceSheet';
+import { BalanceSheetResult, FormType, SWOTItem, ForwardSignal } from '@/types/balanceSheet';
 import SummaryPanel from '@/components/balance-sheet/SummaryPanel';
 import MetricsCards from '@/components/balance-sheet/MetricsCards';
 import BalanceSheetTable from '@/components/balance-sheet/BalanceSheetTable';
@@ -57,25 +57,51 @@ function mapResult(raw: Record<string, unknown>): BalanceSheetResult {
     metric: f.metric,
     value: f.value,
   }));
+
+  const mapSwot = (arr: any[] | undefined): SWOTItem[] => (arr || []).map((x: any) => ({
+    id: x.id, label: x.label, detail: x.detail,
+    metric: x.metric, value: x.value,
+  }));
+
+  const forwardLooking: ForwardSignal[] = ((summary.forwardLooking as any[]) || (summary.forward_looking as any[]) || []).map((x: any) => ({
+    id: x.id, area: x.area, improvement: x.improvement, deterioration: x.deterioration,
+  }));
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
   return {
     companyName: pick(r.companyName as string | null | undefined, r.company_name as string | null | undefined, null),
     filingDate: pick(r.filingDate as string | null | undefined, r.filing_date as string | null | undefined, null),
+    formType: pick(r.formType as FormType | undefined, r.form_type as FormType | undefined, null),
     currency: (r.currency as string) || 'USD',
     unit: (r.unit as string) || 'units',
     periods,
     ratios: {
       currentRatio: pick(ratios.currentRatio as number | null | undefined, ratios.current_ratio as number | null | undefined, null),
+      quickRatio: pick(ratios.quickRatio as number | null | undefined, ratios.quick_ratio as number | null | undefined, null),
+      cashRatio: pick(ratios.cashRatio as number | null | undefined, ratios.cash_ratio as number | null | undefined, null),
       debtToEquity: pick(ratios.debtToEquity as number | null | undefined, ratios.debt_to_equity as number | null | undefined, null),
+      debtToAssets: pick(ratios.debtToAssets as number | null | undefined, ratios.debt_to_assets as number | null | undefined, null),
       workingCapital: pick(ratios.workingCapital as number | null | undefined, ratios.working_capital as number | null | undefined, null),
+      workingCapitalToAssets: pick(ratios.workingCapitalToAssets as number | null | undefined, ratios.working_capital_to_assets as number | null | undefined, null),
       goodwillToAssets: pick(ratios.goodwillToAssets as number | null | undefined, ratios.goodwill_to_assets as number | null | undefined, null),
       intangiblesToAssets: pick(ratios.intangiblesToAssets as number | null | undefined, ratios.intangibles_to_assets as number | null | undefined, null),
+      tangibleEquity: pick(ratios.tangibleEquity as number | null | undefined, ratios.tangible_equity as number | null | undefined, null),
+      arShareOfCurrentAssets: pick(ratios.arShareOfCurrentAssets as number | null | undefined, ratios.ar_share_of_current_assets as number | null | undefined, null),
+      inventoryShareOfCurrentAssets: pick(ratios.inventoryShareOfCurrentAssets as number | null | undefined, ratios.inventory_share_of_current_assets as number | null | undefined, null),
+      apShareOfCurrentLiab: pick(ratios.apShareOfCurrentLiab as number | null | undefined, ratios.ap_share_of_current_liab as number | null | undefined, null),
+      shortTermDebtShareOfDebt: pick(ratios.shortTermDebtShareOfDebt as number | null | undefined, ratios.short_term_debt_share_of_debt as number | null | undefined, null),
     },
     summary: {
       overview: (summary.overview as string) || '',
       ratioNotes: pick(summary.ratioNotes as string[] | undefined, summary.ratio_notes as string[] | undefined, []),
       flags,
+      /* eslint-disable @typescript-eslint/no-explicit-any */
+      strengths: mapSwot(summary.strengths as any[]),
+      weaknesses: mapSwot(summary.weaknesses as any[]),
+      opportunities: mapSwot(summary.opportunities as any[]),
+      threats: mapSwot(summary.threats as any[]),
+      /* eslint-enable @typescript-eslint/no-explicit-any */
+      forwardLooking,
     },
     sourceType: pick(r.sourceType as 'pdf' | 'xbrl' | 'html' | 'manual' | undefined, r.source_type as 'pdf' | 'xbrl' | 'html' | 'manual' | undefined, 'pdf'),
     overallConfidence: pick(r.overallConfidence as number | undefined, r.overall_confidence as number | undefined, 0),
@@ -136,17 +162,36 @@ export default function BalanceSheetResultsPage() {
         <div className="mb-8 bs-fade-in">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <h1
                   className="text-2xl sm:text-3xl font-semibold tracking-tight"
                   style={{ color: 'var(--text-primary)' }}
                 >
                   {result.companyName || 'Analysis Results'}
                 </h1>
+                {result.formType && (
+                  <span
+                    className="text-xs font-semibold px-2 py-1 rounded-md"
+                    style={{
+                      background: 'var(--bs-accent-dim)',
+                      color: 'var(--bs-accent)',
+                      border: '1px solid var(--bs-accent-border)',
+                    }}
+                    title={
+                      result.formType === '10-K'
+                        ? 'Annual report (10-K) — audited, full fiscal year'
+                        : result.formType === '10-Q'
+                        ? 'Quarterly report (10-Q) — unaudited interim period'
+                        : `Form ${result.formType}`
+                    }
+                  >
+                    {result.formType}
+                  </span>
+                )}
               </div>
               {result.filingDate && (
                 <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Filing date: {result.filingDate}
+                  {result.formType === '10-K' ? 'Period ending' : result.formType === '10-Q' ? 'Quarter ending' : 'Filing date'}: {result.filingDate}
                 </p>
               )}
             </div>

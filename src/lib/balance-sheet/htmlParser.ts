@@ -9,8 +9,34 @@
  *    label-matching regexes. Lower confidence; used for older/non-SEC HTML.
  */
 
-import { RawExtraction, RawPeriod } from './types';
+import { RawExtraction, RawPeriod, FormType } from './types';
 import { extractFromText } from './pdfParser'; // shared text scanner (fallback only)
+
+function normalizeFormType(raw: string | null): FormType {
+  if (!raw) return null;
+  const t = raw.trim().toUpperCase();
+  if (t.startsWith('10-K')) return '10-K';
+  if (t.startsWith('10-Q')) return '10-Q';
+  if (t.startsWith('20-F')) return '20-F';
+  if (t.startsWith('40-F')) return '40-F';
+  return 'other';
+}
+
+function detectFormTypeFromHtml(html: string): FormType {
+  // iXBRL exposes form type via DEI
+  const ix = /<ix:nonNumeric[^>]*name="dei:DocumentType"[^>]*>([\s\S]*?)<\/ix:nonNumeric>/i.exec(html);
+  if (ix) {
+    const text = ix[1].replace(/<[^>]+>/g, '').trim();
+    const n = normalizeFormType(text);
+    if (n) return n;
+  }
+  // Fallback: search for "Form 10-K" / "Form 10-Q" markers in document text
+  if (/\bform\s+10[-\s]?k\b/i.test(html)) return '10-K';
+  if (/\bform\s+10[-\s]?q\b/i.test(html)) return '10-Q';
+  if (/\bform\s+20[-\s]?f\b/i.test(html)) return '20-F';
+  if (/\bform\s+40[-\s]?f\b/i.test(html)) return '40-F';
+  return null;
+}
 
 // US-GAAP concept → internal field key (priority order, first match wins per period)
 const CONCEPT_FIELD_PRIORITY: [string, string][] = [
@@ -198,6 +224,7 @@ function parseIxbrl(html: string): RawExtraction | null {
   return {
     companyName,
     filingDate: mostRecentDate,
+    formType: detectFormTypeFromHtml(html),
     currency: 'USD',
     unit: 'millions',
     periods: rawPeriods,
@@ -213,7 +240,8 @@ export function parseHTML(html: string): RawExtraction {
   if (ixbrl) return ixbrl;
 
   // Fallback: text-based extraction for non-iXBRL HTML (older filings)
-  return extractFromText(htmlToText(html), 65);
+  const fallback = extractFromText(htmlToText(html), 65);
+  return { ...fallback, formType: detectFormTypeFromHtml(html) };
 }
 
 // ─── Plain-text fallback ──────────────────────────────────────────────────────

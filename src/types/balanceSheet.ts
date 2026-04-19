@@ -1,5 +1,7 @@
 // Balance Sheet Analyzer — Typed API contracts
 
+export type FormType = '10-K' | '10-Q' | '20-F' | '40-F' | 'other' | null;
+
 export interface NormalizedLineItems {
   cashAndEquivalents: number | null;
   shortTermInvestments: number | null;
@@ -27,10 +29,19 @@ export interface FieldConfidence {
 
 export interface BalanceSheetRatios {
   currentRatio: number | null;
+  quickRatio: number | null;
+  cashRatio: number | null;
   debtToEquity: number | null;
+  debtToAssets: number | null;
   workingCapital: number | null;
+  workingCapitalToAssets: number | null;
   goodwillToAssets: number | null;
   intangiblesToAssets: number | null;
+  tangibleEquity: number | null;
+  arShareOfCurrentAssets: number | null;
+  inventoryShareOfCurrentAssets: number | null;
+  apShareOfCurrentLiab: number | null;
+  shortTermDebtShareOfDebt: number | null;
 }
 
 export type FlagSeverity = 'info' | 'warning' | 'critical';
@@ -44,10 +55,30 @@ export interface AnalysisFlag {
   value?: number;
 }
 
+export interface SWOTItem {
+  id: string;
+  label: string;
+  detail: string;
+  metric?: string;
+  value?: number;
+}
+
+export interface ForwardSignal {
+  id: string;
+  area: 'accounts_receivable' | 'accounts_payable' | 'debt' | 'working_capital' | 'equity' | 'cash';
+  improvement: string;
+  deterioration: string;
+}
+
 export interface BalanceSheetSummary {
   overview: string;
   ratioNotes: string[];
   flags: AnalysisFlag[];
+  strengths: SWOTItem[];
+  weaknesses: SWOTItem[];
+  opportunities: SWOTItem[];
+  threats: SWOTItem[];
+  forwardLooking: ForwardSignal[];
 }
 
 export interface ExtractionPeriod {
@@ -59,6 +90,7 @@ export interface ExtractionPeriod {
 export interface BalanceSheetResult {
   companyName: string | null;
   filingDate: string | null;
+  formType: FormType;
   currency: string;
   unit: string; // "thousands", "millions", "units"
   periods: ExtractionPeriod[];

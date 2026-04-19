@@ -1,5 +1,15 @@
 import pdf from '@cedrugs/pdf-parse';
-import { RawExtraction, RawPeriod } from './types';
+import { RawExtraction, RawPeriod, FormType } from './types';
+
+function detectFormTypeFromText(text: string): FormType {
+  if (/\bform\s+10[-\s]?k\b/i.test(text)) return '10-K';
+  if (/\bform\s+10[-\s]?q\b/i.test(text)) return '10-Q';
+  if (/\bform\s+20[-\s]?f\b/i.test(text)) return '20-F';
+  if (/\bform\s+40[-\s]?f\b/i.test(text)) return '40-F';
+  if (/\b10[-\s]?k\b/i.test(text)) return '10-K';
+  if (/\b10[-\s]?q\b/i.test(text)) return '10-Q';
+  return null;
+}
 
 const FIELD_PATTERNS: [string, RegExp[]][] = [
   ['cash_and_equivalents', [
@@ -146,6 +156,7 @@ export function extractFromText(text: string, confidence = 60): RawExtraction {
   return {
     companyName,
     filingDate: null,
+    formType: detectFormTypeFromText(text),
     currency: 'USD',
     unit,
     periods: [period],

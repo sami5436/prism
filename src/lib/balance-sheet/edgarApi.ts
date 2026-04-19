@@ -1,8 +1,18 @@
 // SEC EDGAR API helpers — deterministic balance sheet extraction via XBRL company facts
 // https://www.sec.gov/edgar/sec-api-documentation
 
-import { RawExtraction, RawPeriod } from './types';
+import { RawExtraction, RawPeriod, FormType } from './types';
 import { memoize } from '../cache';
+
+function normalizeEdgarForm(raw: string | undefined | null): FormType {
+  if (!raw) return null;
+  const t = raw.trim().toUpperCase();
+  if (t.startsWith('10-K')) return '10-K';
+  if (t.startsWith('10-Q')) return '10-Q';
+  if (t.startsWith('20-F')) return '20-F';
+  if (t.startsWith('40-F')) return '40-F';
+  return 'other';
+}
 
 const EDGAR_USER_AGENT = 'Prism Financial Tools sami5436@prism.local';
 const EDGAR_TICKERS_TTL = 24 * 60 * 60 * 1000; // 24h — ticker list rarely changes
@@ -195,9 +205,14 @@ export function companyFactsToRawExtraction(facts: CompanyFacts): RawExtraction 
     rawPeriods.push({ label, rawItems: items });
   }
 
+  // Form type comes from the anchor fact of the most-recent period (10-K vs 10-Q)
+  const latestAnchor = periods[0][1];
+  const formType = normalizeEdgarForm(latestAnchor.form);
+
   return {
     companyName: facts.entityName,
     filingDate: periods[0][0],
+    formType,
     currency: 'USD',
     unit: 'millions',
     periods: rawPeriods,

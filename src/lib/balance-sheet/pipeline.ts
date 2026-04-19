@@ -18,6 +18,7 @@ export function buildResult(rawExtraction: RawExtraction, sourceType: SourceType
   return {
     companyName: rawExtraction.companyName,
     filingDate: rawExtraction.filingDate,
+    formType: rawExtraction.formType,
     currency: rawExtraction.currency,
     unit: rawExtraction.unit,
     periods: periods.map(p => ({
