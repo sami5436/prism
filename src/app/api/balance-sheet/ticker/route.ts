@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { lookupCik, fetchCompanyFacts, companyFactsToRawExtraction } from '@/lib/balance-sheet/edgarApi';
 import { buildResult } from '@/lib/balance-sheet/pipeline';
+import { buildFinancialsResult } from '@/lib/financials/pipeline';
 import { rateLimitResponse } from '@/lib/rateLimit';
 
 export async function POST(request: NextRequest) {
@@ -33,8 +34,17 @@ export async function POST(request: NextRequest) {
 
     const facts = await fetchCompanyFacts(cik);
     const rawExtraction = companyFactsToRawExtraction(facts);
+    const balanceSheet = buildResult(rawExtraction, 'xbrl');
 
-    return NextResponse.json({ success: true, data: buildResult(rawExtraction, 'xbrl') });
+    let financials = null;
+    try {
+      financials = buildFinancialsResult(facts);
+    } catch (err) {
+      // Some filers lack clean income/cash-flow coverage — degrade gracefully.
+      console.warn('Financials extraction failed:', err instanceof Error ? err.message : err);
+    }
+
+    return NextResponse.json({ success: true, data: { ...balanceSheet, financials } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Ticker analysis error:', message);

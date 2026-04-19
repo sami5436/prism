@@ -98,6 +98,100 @@ export interface BalanceSheetResult {
   summary: BalanceSheetSummary;
   sourceType: 'pdf' | 'xbrl' | 'html' | 'manual';
   overallConfidence: number; // 0-100
+  financials?: FinancialsResult | null;
+}
+
+// ── Income statement + cash flow (served from the same ticker endpoint) ──
+
+export interface IncomeStatementItems {
+  revenue: number | null;
+  costOfRevenue: number | null;
+  grossProfit: number | null;
+  researchDevelopment: number | null;
+  sellingGeneralAdmin: number | null;
+  operatingExpenses: number | null;
+  operatingIncome: number | null;
+  interestExpense: number | null;
+  incomeTax: number | null;
+  netIncome: number | null;
+  epsBasic: number | null;
+  epsDiluted: number | null;
+  sharesBasic: number | null;
+  sharesDiluted: number | null;
+}
+
+export interface CashFlowItems {
+  operatingCashFlow: number | null;
+  investingCashFlow: number | null;
+  financingCashFlow: number | null;
+  capitalExpenditures: number | null;
+  depreciationAmortization: number | null;
+  stockBasedCompensation: number | null;
+  buybacks: number | null;
+  dividendsPaid: number | null;
+  debtIssued: number | null;
+  debtRepaid: number | null;
+}
+
+export interface FinancialsPeriod {
+  label: string;
+  periodKey: string;
+  endDate: string;
+  fiscalYear: number | null;
+  fiscalPeriod: string | null;
+  isAnnual: boolean;
+  income: IncomeStatementItems;
+  cashFlow: CashFlowItems;
+}
+
+export interface IncomeRatios {
+  grossMargin: number | null;
+  operatingMargin: number | null;
+  netMargin: number | null;
+  effectiveTaxRate: number | null;
+  interestCoverage: number | null;
+  rdIntensity: number | null;
+  sgaIntensity: number | null;
+  revenueGrowthYoY: number | null;
+  netIncomeGrowthYoY: number | null;
+  epsGrowthYoY: number | null;
+  operatingIncomeGrowthYoY: number | null;
+}
+
+export interface CashFlowRatios {
+  freeCashFlow: number | null;
+  fcfMargin: number | null;
+  earningsQuality: number | null;
+  capexIntensity: number | null;
+  sbcIntensity: number | null;
+  fcfGrowthYoY: number | null;
+  dividendCoverage: number | null;
+  payoutRatio: number | null;
+  buybackOfFcf: number | null;
+  netShareholderReturn: number | null;
+}
+
+export interface FinancialsSummary {
+  overview: string;
+  ratioNotes: string[];
+  flags: AnalysisFlag[];
+  strengths: SWOTItem[];
+  weaknesses: SWOTItem[];
+  opportunities: SWOTItem[];
+  threats: SWOTItem[];
+  forwardLooking: ForwardSignal[];
+}
+
+export interface FinancialsResult {
+  companyName: string | null;
+  formType: FormType;
+  currency: string;
+  unit: string;
+  isAnnual: boolean;
+  periods: FinancialsPeriod[];
+  incomeRatios: IncomeRatios;
+  cashFlowRatios: CashFlowRatios;
+  summary: FinancialsSummary;
 }
 
 export interface UploadResponse {

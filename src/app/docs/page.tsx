@@ -1,6 +1,7 @@
 import DocsShell from '@/components/docs/DocsShell';
 import IndicatorsDocs from '@/components/docs/IndicatorsDocs';
 import BalanceSheetDocs from '@/components/docs/BalanceSheetDocs';
+import FinancialsDocs from '@/components/docs/FinancialsDocs';
 import OptionsDocs from '@/components/docs/OptionsDocs';
 
 const TOC = [
@@ -37,6 +38,29 @@ const TOC = [
     ],
   },
   {
+    id: 'financials',
+    label: 'Earnings & Cash Flow',
+    children: [
+      { id: 'income-vs-cashflow', label: 'Income vs cash flow' },
+      { id: 'income-structure', label: 'Income statement structure' },
+      { id: 'gross-margin', label: 'Gross Margin' },
+      { id: 'operating-margin', label: 'Operating Margin' },
+      { id: 'net-margin', label: 'Net Margin' },
+      { id: 'rev-growth', label: 'Revenue growth YoY' },
+      { id: 'eps-growth', label: 'EPS vs net income growth' },
+      { id: 'interest-coverage', label: 'Interest Coverage' },
+      { id: 'free-cash-flow', label: 'Free Cash Flow' },
+      { id: 'fcf-margin', label: 'FCF Margin' },
+      { id: 'earnings-quality', label: 'CFO / Net Income' },
+      { id: 'capex-intensity', label: 'CapEx Intensity' },
+      { id: 'sbc-intensity', label: 'SBC Intensity' },
+      { id: 'capital-return', label: 'Dividends vs buybacks' },
+      { id: 'fin-swot-framework', label: 'Financials SWOT' },
+      { id: 'fin-forward-looking', label: 'Forward-looking signals' },
+      { id: 'how-financials-works', label: 'How this module works' },
+    ],
+  },
+  {
     id: 'options',
     label: 'Options',
     children: [
@@ -70,6 +94,7 @@ export default function DocsPage() {
 
       <IndicatorsDocs />
       <BalanceSheetDocs />
+      <FinancialsDocs />
       <OptionsDocs />
 
       <footer className="pt-8 border-t" style={{ borderColor: 'var(--border-color)' }}>

@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BalanceSheetResult, FormType, SWOTItem, ForwardSignal } from '@/types/balanceSheet';
+import { BalanceSheetResult, FormType, SWOTItem, ForwardSignal, FinancialsResult } from '@/types/balanceSheet';
 import SummaryPanel from '@/components/balance-sheet/SummaryPanel';
 import MetricsCards from '@/components/balance-sheet/MetricsCards';
 import BalanceSheetTable from '@/components/balance-sheet/BalanceSheetTable';
 import HighlightsPanel from '@/components/balance-sheet/HighlightsPanel';
 import ConfidenceNote from '@/components/balance-sheet/ConfidenceNote';
+import FinancialsMetricsCards from '@/components/balance-sheet/FinancialsMetricsCards';
+import FinancialsTable from '@/components/balance-sheet/FinancialsTable';
+import FinancialsSummaryPanel from '@/components/balance-sheet/FinancialsSummaryPanel';
 
 // API returns camelCase; accept both shapes defensively in case older sessionStorage payloads are present.
 function pick<T>(a: T | undefined, b: T | undefined, fallback: T): T {
@@ -66,6 +69,8 @@ function mapResult(raw: Record<string, unknown>): BalanceSheetResult {
   const forwardLooking: ForwardSignal[] = ((summary.forwardLooking as any[]) || (summary.forward_looking as any[]) || []).map((x: any) => ({
     id: x.id, area: x.area, improvement: x.improvement, deterioration: x.deterioration,
   }));
+
+  const financials = mapFinancials(r.financials);
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
   return {
@@ -105,8 +110,115 @@ function mapResult(raw: Record<string, unknown>): BalanceSheetResult {
     },
     sourceType: pick(r.sourceType as 'pdf' | 'xbrl' | 'html' | 'manual' | undefined, r.source_type as 'pdf' | 'xbrl' | 'html' | 'manual' | undefined, 'pdf'),
     overallConfidence: pick(r.overallConfidence as number | undefined, r.overall_confidence as number | undefined, 0),
+    financials,
   };
 }
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function mapFinancials(raw: unknown): FinancialsResult | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const f = raw as Record<string, any>;
+  if (!Array.isArray(f.periods) || !f.periods.length) return null;
+
+  const periods = f.periods.map((p: any) => ({
+    label: p.label,
+    periodKey: p.periodKey,
+    endDate: p.endDate,
+    fiscalYear: p.fiscalYear ?? null,
+    fiscalPeriod: p.fiscalPeriod ?? null,
+    isAnnual: !!p.isAnnual,
+    income: {
+      revenue: p.income?.revenue ?? null,
+      costOfRevenue: p.income?.costOfRevenue ?? null,
+      grossProfit: p.income?.grossProfit ?? null,
+      researchDevelopment: p.income?.researchDevelopment ?? null,
+      sellingGeneralAdmin: p.income?.sellingGeneralAdmin ?? null,
+      operatingExpenses: p.income?.operatingExpenses ?? null,
+      operatingIncome: p.income?.operatingIncome ?? null,
+      interestExpense: p.income?.interestExpense ?? null,
+      incomeTax: p.income?.incomeTax ?? null,
+      netIncome: p.income?.netIncome ?? null,
+      epsBasic: p.income?.epsBasic ?? null,
+      epsDiluted: p.income?.epsDiluted ?? null,
+      sharesBasic: p.income?.sharesBasic ?? null,
+      sharesDiluted: p.income?.sharesDiluted ?? null,
+    },
+    cashFlow: {
+      operatingCashFlow: p.cashFlow?.operatingCashFlow ?? null,
+      investingCashFlow: p.cashFlow?.investingCashFlow ?? null,
+      financingCashFlow: p.cashFlow?.financingCashFlow ?? null,
+      capitalExpenditures: p.cashFlow?.capitalExpenditures ?? null,
+      depreciationAmortization: p.cashFlow?.depreciationAmortization ?? null,
+      stockBasedCompensation: p.cashFlow?.stockBasedCompensation ?? null,
+      buybacks: p.cashFlow?.buybacks ?? null,
+      dividendsPaid: p.cashFlow?.dividendsPaid ?? null,
+      debtIssued: p.cashFlow?.debtIssued ?? null,
+      debtRepaid: p.cashFlow?.debtRepaid ?? null,
+    },
+  }));
+
+  const incomeRatios = f.incomeRatios ?? {};
+  const cashFlowRatios = f.cashFlowRatios ?? {};
+  const summary = f.summary ?? {};
+
+  const mapSwot = (arr: any[] | undefined): SWOTItem[] => (arr || []).map((x: any) => ({
+    id: x.id, label: x.label, detail: x.detail, metric: x.metric, value: x.value,
+  }));
+
+  return {
+    companyName: f.companyName ?? null,
+    formType: (f.formType ?? null) as FormType,
+    currency: f.currency ?? 'USD',
+    unit: f.unit ?? 'millions',
+    isAnnual: !!f.isAnnual,
+    periods,
+    incomeRatios: {
+      grossMargin: incomeRatios.grossMargin ?? null,
+      operatingMargin: incomeRatios.operatingMargin ?? null,
+      netMargin: incomeRatios.netMargin ?? null,
+      effectiveTaxRate: incomeRatios.effectiveTaxRate ?? null,
+      interestCoverage: incomeRatios.interestCoverage ?? null,
+      rdIntensity: incomeRatios.rdIntensity ?? null,
+      sgaIntensity: incomeRatios.sgaIntensity ?? null,
+      revenueGrowthYoY: incomeRatios.revenueGrowthYoY ?? null,
+      netIncomeGrowthYoY: incomeRatios.netIncomeGrowthYoY ?? null,
+      epsGrowthYoY: incomeRatios.epsGrowthYoY ?? null,
+      operatingIncomeGrowthYoY: incomeRatios.operatingIncomeGrowthYoY ?? null,
+    },
+    cashFlowRatios: {
+      freeCashFlow: cashFlowRatios.freeCashFlow ?? null,
+      fcfMargin: cashFlowRatios.fcfMargin ?? null,
+      earningsQuality: cashFlowRatios.earningsQuality ?? null,
+      capexIntensity: cashFlowRatios.capexIntensity ?? null,
+      sbcIntensity: cashFlowRatios.sbcIntensity ?? null,
+      fcfGrowthYoY: cashFlowRatios.fcfGrowthYoY ?? null,
+      dividendCoverage: cashFlowRatios.dividendCoverage ?? null,
+      payoutRatio: cashFlowRatios.payoutRatio ?? null,
+      buybackOfFcf: cashFlowRatios.buybackOfFcf ?? null,
+      netShareholderReturn: cashFlowRatios.netShareholderReturn ?? null,
+    },
+    summary: {
+      overview: summary.overview ?? '',
+      ratioNotes: Array.isArray(summary.ratioNotes) ? summary.ratioNotes : [],
+      flags: Array.isArray(summary.flags)
+        ? summary.flags.map((x: any) => ({
+            id: x.id, label: x.label, description: x.description,
+            severity: x.severity, metric: x.metric, value: x.value,
+          }))
+        : [],
+      strengths: mapSwot(summary.strengths),
+      weaknesses: mapSwot(summary.weaknesses),
+      opportunities: mapSwot(summary.opportunities),
+      threats: mapSwot(summary.threats),
+      forwardLooking: Array.isArray(summary.forwardLooking)
+        ? summary.forwardLooking.map((x: any) => ({
+            id: x.id, area: x.area, improvement: x.improvement, deterioration: x.deterioration,
+          }))
+        : [],
+    },
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export default function BalanceSheetResultsPage() {
   const router = useRouter();
@@ -238,6 +350,32 @@ export default function BalanceSheetResultsPage() {
               <HighlightsPanel flags={result.summary.flags} />
             </div>
           </div>
+
+          {/* Income statement + cash flow (EDGAR ticker flow only) */}
+          {result.financials && result.financials.periods.length > 0 && (
+            <div className="space-y-5 pt-6 mt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
+              <div>
+                <h2
+                  className="text-xl sm:text-2xl font-semibold tracking-tight"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  Earnings & Cash Flow
+                </h2>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {result.financials.isAnnual ? 'Fiscal-year' : 'Quarterly'} income statement and cash flow — margins, growth, and cash generation.
+                </p>
+              </div>
+
+              <FinancialsSummaryPanel summary={result.financials.summary} />
+
+              <FinancialsMetricsCards
+                income={result.financials.incomeRatios}
+                cashFlow={result.financials.cashFlowRatios}
+              />
+
+              <FinancialsTable periods={result.financials.periods} />
+            </div>
+          )}
 
           {/* Confidence / source note */}
           <ConfidenceNote
