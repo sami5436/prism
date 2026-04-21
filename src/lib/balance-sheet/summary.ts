@@ -359,61 +359,87 @@ function buildSWOT(
 
 // ── Forward-looking signals ──────────────────────────────────────────────────
 
+// Build only the signals that have a meaningful current-period delta; skip the
+// rest to avoid rendering boilerplate guidance that applies to any company.
 function buildForwardLooking(
   curr: NormalizedPeriod,
   prev: NormalizedPeriod | undefined,
 ): ForwardSignal[] {
-  const signals: ForwardSignal[] = [];
+  if (!prev) return [];
 
-  signals.push({
-    id: 'fwd_ar',
-    area: 'accounts_receivable',
-    improvement: 'AR growing slower than revenue (or falling) indicates tighter collections — translates directly to operating cash flow.',
-    deterioration: 'AR growing faster than revenue is a leading signal of deteriorating days-sales-outstanding, customer credit stress, or channel-stuffing.',
-  });
+  const i = curr.lineItems;
+  const p = prev.lineItems;
 
-  signals.push({
-    id: 'fwd_ap',
-    area: 'accounts_payable',
-    improvement: 'AP rising modestly alongside purchases signals stronger supplier financing. A stable AP/COGS ratio means terms are holding.',
-    deterioration: 'AP growing far faster than purchases — or sudden jumps without revenue growth — indicates payment stretching, often a precursor to a covenant or liquidity event.',
-  });
+  const dAR = yoyPct(i.accounts_receivable, p.accounts_receivable);
+  const dAP = yoyPct(i.accounts_payable, p.accounts_payable);
+  const dDebt = yoyPct(
+    (i.long_term_debt ?? 0) + (i.short_term_debt ?? 0),
+    (p.long_term_debt ?? 0) + (p.short_term_debt ?? 0),
+  );
+  const dWC = yoyPct(
+    (i.total_current_assets ?? 0) - (i.total_current_liabilities ?? 0),
+    (p.total_current_assets ?? 0) - (p.total_current_liabilities ?? 0),
+  );
 
-  signals.push({
-    id: 'fwd_debt',
-    area: 'debt',
-    improvement: 'Falling total debt, extended average maturity, or a shift from short-term to long-term debt lowers refinancing risk.',
-    deterioration: 'Rising short-term debt share, new drawings on revolvers, or stable total debt with shrinking equity all signal a weakening capital structure.',
-  });
+  // Rank candidate signals by magnitude of change — biggest movers first
+  const candidates: Array<{ delta: number; signal: ForwardSignal }> = [];
 
-  signals.push({
-    id: 'fwd_wc',
-    area: 'working_capital',
-    improvement: 'Working capital rising slower than revenue is the textbook sign of improving capital efficiency. Inventory days falling is a particularly clean read.',
-    deterioration: 'Working capital ballooning faster than revenue means each incremental dollar of sales ties up more cash — a quiet drain on free cash flow.',
-  });
-
-  if (prev) {
-    const i = curr.lineItems;
-    const p = prev.lineItems;
-    const dAR = yoyPct(i.accounts_receivable, p.accounts_receivable);
-    const dAP = yoyPct(i.accounts_payable, p.accounts_payable);
-    const dWC = yoyPct(
-      (i.total_current_assets ?? 0) - (i.total_current_liabilities ?? 0),
-      (p.total_current_assets ?? 0) - (p.total_current_liabilities ?? 0),
-    );
-    const dDebt = yoyPct(
-      (i.long_term_debt ?? 0) + (i.short_term_debt ?? 0),
-      (p.long_term_debt ?? 0) + (p.short_term_debt ?? 0),
-    );
-
-    if (dAR != null) signals[0].improvement = `Currently AR ${dAR >= 0 ? 'rose' : 'fell'} ${(Math.abs(dAR) * 100).toFixed(1)}% vs ${prev.label}. ` + signals[0].improvement;
-    if (dAP != null) signals[1].improvement = `Currently AP ${dAP >= 0 ? 'rose' : 'fell'} ${(Math.abs(dAP) * 100).toFixed(1)}% vs ${prev.label}. ` + signals[1].improvement;
-    if (dDebt != null) signals[2].improvement = `Total debt ${dDebt >= 0 ? 'increased' : 'decreased'} ${(Math.abs(dDebt) * 100).toFixed(1)}%. ` + signals[2].improvement;
-    if (dWC != null) signals[3].improvement = `Working capital ${dWC >= 0 ? 'expanded' : 'contracted'} ${(Math.abs(dWC) * 100).toFixed(1)}%. ` + signals[3].improvement;
+  if (dAR != null && Math.abs(dAR) > 0.05) {
+    candidates.push({
+      delta: Math.abs(dAR),
+      signal: {
+        id: 'fwd_ar',
+        area: 'accounts_receivable',
+        improvement: `AR ${dAR >= 0 ? 'rose' : 'fell'} ${(Math.abs(dAR) * 100).toFixed(1)}% vs ${prev.label}. Falling AR (or AR growing slower than revenue) is a clean signal of tighter collections.`,
+        deterioration: `AR outpacing revenue growth is a leading signal of deteriorating collections, customer credit stress, or channel-stuffing.`,
+      },
+    });
   }
 
-  return signals;
+  if (dAP != null && Math.abs(dAP) > 0.1) {
+    candidates.push({
+      delta: Math.abs(dAP),
+      signal: {
+        id: 'fwd_ap',
+        area: 'accounts_payable',
+        improvement: `AP ${dAP >= 0 ? 'rose' : 'fell'} ${(Math.abs(dAP) * 100).toFixed(1)}% vs ${prev.label}. Modest AP growth alongside purchases is healthy supplier financing.`,
+        deterioration: `Sudden AP jumps without revenue growth indicate payment stretching — often a precursor to a liquidity event.`,
+      },
+    });
+  }
+
+  if (dDebt != null && Math.abs(dDebt) > 0.05) {
+    candidates.push({
+      delta: Math.abs(dDebt),
+      signal: {
+        id: 'fwd_debt',
+        area: 'debt',
+        improvement: `Total debt ${dDebt >= 0 ? 'rose' : 'fell'} ${(Math.abs(dDebt) * 100).toFixed(1)}%. Falling debt or a shift to longer maturities lowers refinancing risk.`,
+        deterioration: `Rising short-term debt share or stable debt with shrinking equity signals a weakening capital structure.`,
+      },
+    });
+  }
+
+  if (dWC != null && Math.abs(dWC) > 0.1) {
+    candidates.push({
+      delta: Math.abs(dWC),
+      signal: {
+        id: 'fwd_wc',
+        area: 'working_capital',
+        improvement: `Working capital ${dWC >= 0 ? 'expanded' : 'contracted'} ${(Math.abs(dWC) * 100).toFixed(1)}%. WC rising slower than revenue is the textbook sign of improving capital efficiency.`,
+        deterioration: `WC ballooning faster than revenue means each new sales dollar ties up more cash — a quiet drain on free cash flow.`,
+      },
+    });
+  }
+
+  candidates.sort((a, b) => b.delta - a.delta);
+  return candidates.slice(0, 2).map(c => c.signal);
+}
+
+// Keep only the N most material items per SWOT bucket.
+const SWOT_CAP = 3;
+function capSwot<T>(arr: T[]): T[] {
+  return arr.slice(0, SWOT_CAP);
 }
 
 // ── Entry point ──────────────────────────────────────────────────────────────
@@ -474,7 +500,7 @@ export function generateSummary(
     flags.push({ id: 'high_goodwill', label: 'High Goodwill Share', description: `Goodwill is ${pct(ratios.goodwillToAssets, 1)} of assets.`, severity: ratios.goodwillToAssets > 0.4 ? 'warning' : 'info', metric: 'goodwill_to_assets', value: ratios.goodwillToAssets });
   }
   if (ratios.intangiblesToAssets != null && ratios.intangiblesToAssets > 0.3) {
-    flags.push({ id: 'high_intangibles', label: 'High Intangibles Share', description: `Intangibles + goodwill are ${pct(ratios.intangiblesToAssets, 1)} of assets.`, severity: 'info', metric: 'intangibles_to_assets', value: ratios.intangiblesToAssets });
+    flags.push({ id: 'high_intangibles', label: 'High Intangibles Share', description: `Intangibles are ${pct(ratios.intangiblesToAssets, 1)} of assets.`, severity: 'info', metric: 'intangibles_to_assets', value: ratios.intangiblesToAssets });
   }
   if (prev) flags.push(...detectYoYChanges(curr, prev));
 
@@ -489,10 +515,10 @@ export function generateSummary(
     overview,
     ratioNotes,
     flags,
-    strengths,
-    weaknesses,
-    opportunities,
-    threats,
+    strengths: capSwot(strengths),
+    weaknesses: capSwot(weaknesses),
+    opportunities: capSwot(opportunities),
+    threats: capSwot(threats),
     forwardLooking,
   };
 }

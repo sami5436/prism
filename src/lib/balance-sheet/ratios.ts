@@ -35,7 +35,6 @@ export function computeRatios(periods: NormalizedPeriod[]): ComputedRatios {
   const std = i.short_term_debt;
   const ltd = i.long_term_debt;
   const totalAssets = i.total_assets;
-  const totalLiab = i.total_liabilities;
   const equity = i.total_equity;
   const goodwill = i.goodwill ?? 0;
   const intangibles = i.intangible_assets ?? 0;
@@ -52,15 +51,23 @@ export function computeRatios(periods: NormalizedPeriod[]): ComputedRatios {
 
   const cashRatio = safeDiv((cash ?? 0) + (sti ?? 0), currentLiab);
 
-  const debtToEquity = safeDiv(totalLiab, equity);
-  const debtToAssets = safeDiv(totalLiab, totalAssets);
+  // Financial debt only — not total liabilities. Total liabilities includes AP,
+  // deferred revenue, lease liabilities, etc., which aren't leverage in the
+  // credit sense. If neither short- nor long-term debt was reported, we can't
+  // compute leverage reliably.
+  const financialDebt =
+    std == null && ltd == null ? null : (std ?? 0) + (ltd ?? 0);
+  const debtToEquity = safeDiv(financialDebt, equity);
+  const debtToAssets = safeDiv(financialDebt, totalAssets);
 
   const workingCapital =
     currentAssets != null && currentLiab != null ? currentAssets - currentLiab : null;
   const workingCapitalToAssets = safeDiv(workingCapital, totalAssets);
 
   const goodwillToAssets = safeDiv(goodwill, totalAssets);
-  const intangiblesToAssets = safeDiv(goodwill + intangibles, totalAssets);
+  // Intangibles excluding goodwill — goodwill already has its own ratio, so
+  // including it here would double-count.
+  const intangiblesToAssets = safeDiv(intangibles, totalAssets);
 
   const tangibleEquity =
     equity != null ? equity - goodwill - intangibles : null;

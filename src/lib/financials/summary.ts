@@ -292,54 +292,80 @@ function buildSWOT(
   return { strengths, weaknesses, opportunities, threats };
 }
 
+// Emit only the forward-looking signals where the current period shows a real
+// delta worth discussing — ranked by magnitude, capped to 2.
 function buildForwardLooking(periods: FinancialsPeriod[]): ForwardSignal[] {
-  const signals: ForwardSignal[] = [
-    {
-      id: 'fwd_revenue',
-      area: 'working_capital', // overloaded enum — reuse working_capital for revenue growth (closest semantic)
-      improvement: 'Revenue growth accelerating (or stable at double-digits) alongside holding gross margin is the textbook sign of durable business momentum.',
-      deterioration: 'Revenue growth decelerating sharply while SG&A holds flat produces negative operating leverage — margins compress fast in the next period.',
-    },
-    {
-      id: 'fwd_margin',
-      area: 'working_capital',
-      improvement: 'Gross margin rising even modestly (20-50 bps) indicates pricing power or scale leverage. Sustained expansion compounds into meaningful profit growth.',
-      deterioration: 'Margins contracting with revenue growth holding = cost pressure or pricing erosion. Often a leading signal of a broader competitive shift.',
-    },
-    {
-      id: 'fwd_fcf',
-      area: 'cash',
-      improvement: 'FCF growing faster than net income, and CFO/Net Income ratio near or above 1.0, confirms reported earnings are real cash.',
-      deterioration: 'FCF shrinking while reported net income grows widens the earnings-quality gap — usually driven by rising receivables or one-off accruals.',
-    },
-    {
-      id: 'fwd_capital_return',
-      area: 'debt',
-      improvement: 'Buybacks or dividends staying at or below FCF means capital return is self-funded and sustainable.',
-      deterioration: 'Capital return rising while FCF falls (or debt rising to fund buybacks) indicates borrowed-from-the-future returns — a common late-cycle pattern.',
-    },
-  ];
+  if (periods.length < 2) return [];
 
-  // Prefix with actual YoY deltas where available
-  if (periods.length >= 2) {
-    const curr = periods[0];
-    const prev = periods[1];
-    const dRev = yoyPct(curr.income.revenue, prev.income.revenue);
-    const dNi = yoyPct(curr.income.netIncome, prev.income.netIncome);
-    const prevGross = prev.income.grossProfit && prev.income.revenue
-      ? prev.income.grossProfit / prev.income.revenue : null;
-    const currGross = curr.income.grossProfit && curr.income.revenue
-      ? curr.income.grossProfit / curr.income.revenue : null;
-    const dGm = prevGross != null && currGross != null ? currGross - prevGross : null;
-    const dCfo = yoyPct(curr.cashFlow.operatingCashFlow, prev.cashFlow.operatingCashFlow);
+  const curr = periods[0];
+  const prev = periods[1];
 
-    if (dRev != null) signals[0].improvement = `Revenue ${dRev >= 0 ? 'up' : 'down'} ${(Math.abs(dRev) * 100).toFixed(1)}% vs ${prev.label}. ` + signals[0].improvement;
-    if (dGm != null) signals[1].improvement = `Gross margin ${dGm >= 0 ? 'expanded' : 'contracted'} ${(Math.abs(dGm) * 100).toFixed(1)} pp. ` + signals[1].improvement;
-    if (dCfo != null) signals[2].improvement = `Operating cash flow ${dCfo >= 0 ? 'grew' : 'shrank'} ${(Math.abs(dCfo) * 100).toFixed(1)}%. ` + signals[2].improvement;
-    if (dNi != null) signals[3].improvement = `Net income ${dNi >= 0 ? 'up' : 'down'} ${(Math.abs(dNi) * 100).toFixed(1)}%. ` + signals[3].improvement;
+  const dRev = yoyPct(curr.income.revenue, prev.income.revenue);
+  const dNi = yoyPct(curr.income.netIncome, prev.income.netIncome);
+  const prevGross = prev.income.grossProfit && prev.income.revenue
+    ? prev.income.grossProfit / prev.income.revenue : null;
+  const currGross = curr.income.grossProfit && curr.income.revenue
+    ? curr.income.grossProfit / curr.income.revenue : null;
+  const dGm = prevGross != null && currGross != null ? currGross - prevGross : null;
+  const dCfo = yoyPct(curr.cashFlow.operatingCashFlow, prev.cashFlow.operatingCashFlow);
+
+  const candidates: Array<{ weight: number; signal: ForwardSignal }> = [];
+
+  if (dRev != null && Math.abs(dRev) > 0.03) {
+    candidates.push({
+      weight: Math.abs(dRev),
+      signal: {
+        id: 'fwd_revenue',
+        area: 'working_capital',
+        improvement: `Revenue ${dRev >= 0 ? 'up' : 'down'} ${(Math.abs(dRev) * 100).toFixed(1)}% vs ${prev.label}. Sustained double-digit growth with stable gross margin is the textbook sign of durable momentum.`,
+        deterioration: `Revenue decelerating while SG&A holds flat produces negative operating leverage — margins compress fast.`,
+      },
+    });
   }
 
-  return signals;
+  if (dGm != null && Math.abs(dGm) > 0.005) {
+    candidates.push({
+      weight: Math.abs(dGm) * 10,
+      signal: {
+        id: 'fwd_margin',
+        area: 'working_capital',
+        improvement: `Gross margin ${dGm >= 0 ? 'expanded' : 'contracted'} ${(Math.abs(dGm) * 100).toFixed(1)} pp. Even modest sustained expansion compounds into meaningful profit growth.`,
+        deterioration: `Margins contracting with revenue growth holding = cost pressure or pricing erosion.`,
+      },
+    });
+  }
+
+  if (dCfo != null && Math.abs(dCfo) > 0.05) {
+    candidates.push({
+      weight: Math.abs(dCfo),
+      signal: {
+        id: 'fwd_fcf',
+        area: 'cash',
+        improvement: `Operating cash flow ${dCfo >= 0 ? 'grew' : 'shrank'} ${(Math.abs(dCfo) * 100).toFixed(1)}%. CFO keeping pace with net income confirms earnings are backed by real cash.`,
+        deterioration: `FCF shrinking while reported net income grows widens the earnings-quality gap — watch receivables and one-off accruals.`,
+      },
+    });
+  }
+
+  if (dNi != null && Math.abs(dNi) > 0.05) {
+    candidates.push({
+      weight: Math.abs(dNi),
+      signal: {
+        id: 'fwd_capital_return',
+        area: 'debt',
+        improvement: `Net income ${dNi >= 0 ? 'up' : 'down'} ${(Math.abs(dNi) * 100).toFixed(1)}%. Buybacks or dividends at or below FCF means capital return is self-funded.`,
+        deterioration: `Capital return rising while FCF falls (or debt rising to fund buybacks) indicates borrowed-from-the-future returns.`,
+      },
+    });
+  }
+
+  candidates.sort((a, b) => b.weight - a.weight);
+  return candidates.slice(0, 2).map(c => c.signal);
+}
+
+const SWOT_CAP = 3;
+function capSwot<T>(arr: T[]): T[] {
+  return arr.slice(0, SWOT_CAP);
 }
 
 export function generateFinancialsSummary(
@@ -398,7 +424,10 @@ export function generateFinancialsSummary(
     overview,
     ratioNotes,
     flags,
-    ...swot,
+    strengths: capSwot(swot.strengths),
+    weaknesses: capSwot(swot.weaknesses),
+    opportunities: capSwot(swot.opportunities),
+    threats: capSwot(swot.threats),
     forwardLooking,
   };
 }

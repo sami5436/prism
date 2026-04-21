@@ -38,10 +38,11 @@ const METRICS: MetricConfig[] = [
     label: 'Debt / Equity',
     key: 'debtToEquity',
     format: 'ratio',
-    description: 'Total debt ÷ shareholders equity — how much the company is financed by debt vs. owners.',
+    description: 'Short-term + long-term debt ÷ shareholders equity — true financial leverage, excludes operating liabilities.',
     thresholds: { good: [0, 1.5], warn: [1.5, 3] },
     insight: (v, status) => {
-      if (status === 'positive') return `Moderate leverage. Creditors and equity holders share risk in reasonable proportion.`;
+      if (v === 0) return `No interest-bearing debt reported. Capital structure is all-equity on the financial-debt side.`;
+      if (status === 'positive') return `Moderate leverage. Debt is balanced against equity — typical for a healthy capital structure.`;
       if (status === 'warning') return `Elevated debt load relative to equity. Higher interest obligations could pressure earnings.`;
       return `Heavy leverage — debt is more than ${v.toFixed(1)}× equity. Sensitive to rate changes and earnings dips.`;
     },
@@ -73,12 +74,12 @@ const METRICS: MetricConfig[] = [
     label: 'Intangibles / Assets',
     key: 'intangiblesToAssets',
     format: 'percent',
-    description: 'Intangible assets ÷ total assets — patents, trademarks, and other non-physical value as a share of the balance sheet.',
-    thresholds: { good: [0, 0.3], warn: [0.3, 0.5] },
+    description: 'Intangible assets (excluding goodwill) ÷ total assets — patents, trademarks, and capitalised software as a share of the balance sheet.',
+    thresholds: { good: [0, 0.2], warn: [0.2, 0.4] },
     insight: (v, status) => {
-      if (status === 'positive') return `Intangibles are a modest share of assets. Solid tangible asset base supports borrowing capacity.`;
+      if (status === 'positive') return `Intangibles are a modest share of assets. Tangible asset base supports borrowing capacity.`;
       if (status === 'warning') return `Notable intangible concentration. Value depends on continued IP relevance and brand strength.`;
-      return `Over half of assets are intangible. Book value may be fragile if IP or brand value deteriorates.`;
+      return `Intangibles are ${(v * 100).toFixed(0)}% of assets. Book value may be fragile if IP or brand value deteriorates.`;
     },
   },
 ];
