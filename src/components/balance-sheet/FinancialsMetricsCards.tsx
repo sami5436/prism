@@ -83,28 +83,7 @@ function buildMetrics(income: IncomeRatios, cashFlow: CashFlowRatios): MetricCon
         return `Net losses. Either operating income is negative or interest/tax is eating it up.`;
       },
     },
-    {
-      label: 'Revenue Growth YoY',
-      value: income.revenueGrowthYoY,
-      format: 'percent',
-      description: 'Year-over-year change in revenue — the top-line trajectory.',
-      thresholds: { good: [0.1, 10], warn: [0, 0.1] },
-      insight: (v, s) => {
-        if (s === 'positive') return `Growing ${(v * 100).toFixed(1)}% — double-digit top-line expansion is the raw material for compounding.`;
-        if (s === 'warning') return `Positive but slow. Margin expansion or capital return has to do the heavy lifting.`;
-        return `Revenue is declining. Operating leverage works in reverse — margins compress unless costs fall faster.`;
-      },
-    },
-    {
-      label: 'Free Cash Flow',
-      value: cashFlow.freeCashFlow,
-      format: 'currency_mm',
-      description: 'Operating cash flow minus capital expenditures — cash left over for debt paydown, dividends, or buybacks.',
-      insight: (v) => {
-        if (v > 0) return `Generates ${fmt(v, 'currency_mm')} of cash after reinvesting in the business. Real optionality — can pay debt, return capital, or build cash.`;
-        return `Burning cash after CapEx. Growth is being funded by balance-sheet capital, not operations.`;
-      },
-    },
+    // Revenue Growth YoY and Free Cash Flow are shown in the HeadlineBar.
     {
       label: 'FCF Margin',
       value: cashFlow.fcfMargin,

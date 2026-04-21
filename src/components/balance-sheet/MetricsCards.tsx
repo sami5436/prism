@@ -20,33 +20,9 @@ interface MetricConfig {
   insight: (value: number, status: string) => string;
 }
 
+// Current Ratio and Debt/Equity are shown in the HeadlineBar at the top of the
+// page — cards here cover ratios that aren't in the headline.
 const METRICS: MetricConfig[] = [
-  {
-    label: 'Current Ratio',
-    key: 'currentRatio',
-    format: 'ratio',
-    description: 'Current assets ÷ current liabilities — measures ability to cover short-term obligations.',
-    thresholds: { good: [1.2, 3], warn: [0.8, 1.2] },
-    insight: (v, status) => {
-      if (status === 'positive') return `For every $1 owed short-term, the company holds $${v.toFixed(2)} in liquid assets. Comfortable buffer.`;
-      if (status === 'warning') return `Tight but manageable — short-term assets barely cover near-term obligations. Worth monitoring.`;
-      if (v > 3) return `Very high — could signal idle cash or slow inventory turnover rather than pure strength.`;
-      return `Below 1 means current liabilities exceed current assets. Potential near-term liquidity stress.`;
-    },
-  },
-  {
-    label: 'Debt / Equity',
-    key: 'debtToEquity',
-    format: 'ratio',
-    description: 'Short-term + long-term debt ÷ shareholders equity — true financial leverage, excludes operating liabilities.',
-    thresholds: { good: [0, 1.5], warn: [1.5, 3] },
-    insight: (v, status) => {
-      if (v === 0) return `No interest-bearing debt reported. Capital structure is all-equity on the financial-debt side.`;
-      if (status === 'positive') return `Moderate leverage. Debt is balanced against equity — typical for a healthy capital structure.`;
-      if (status === 'warning') return `Elevated debt load relative to equity. Higher interest obligations could pressure earnings.`;
-      return `Heavy leverage — debt is more than ${v.toFixed(1)}× equity. Sensitive to rate changes and earnings dips.`;
-    },
-  },
   {
     label: 'Working Capital',
     key: 'workingCapital',

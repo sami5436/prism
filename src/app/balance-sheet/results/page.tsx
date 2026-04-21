@@ -11,6 +11,7 @@ import ConfidenceNote from '@/components/balance-sheet/ConfidenceNote';
 import FinancialsMetricsCards from '@/components/balance-sheet/FinancialsMetricsCards';
 import FinancialsTable from '@/components/balance-sheet/FinancialsTable';
 import FinancialsSummaryPanel from '@/components/balance-sheet/FinancialsSummaryPanel';
+import HeadlineBar from '@/components/balance-sheet/HeadlineBar';
 
 // API returns camelCase; accept both shapes defensively in case older sessionStorage payloads are present.
 function pick<T>(a: T | undefined, b: T | undefined, fallback: T): T {
@@ -326,53 +327,58 @@ export default function BalanceSheetResultsPage() {
           </div>
         </div>
 
-        {/* Content grid */}
+        {/* Headlined KPIs — highest-signal numbers, top of page */}
+        <HeadlineBar result={result} />
+
+        {/* Watch items — the short verdict, surfaced directly under the headline */}
+        <div className="mt-5">
+          <HighlightsPanel flags={result.summary.flags} />
+        </div>
+
+        {/* Details section divider */}
+        <div className="mt-10 mb-5 flex items-center gap-3">
+          <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+            Detailed analysis
+          </span>
+          <span className="flex-1 h-px" style={{ background: 'var(--border-color)' }} />
+        </div>
+
         <div className="space-y-5">
-          {/* Summary */}
-          <SummaryPanel summary={result.summary} companyName={result.companyName} />
-
-          {/* Metrics cards */}
-          <MetricsCards ratios={result.ratios} currency={currencySymbol} unit={result.unit} />
-
-          {/* Two-column on desktop: table + highlights */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-            {/* Table takes more space */}
-            <div className="lg:col-span-3">
-              <BalanceSheetTable
-                periods={result.periods}
-                currency={currencySymbol}
-                unit={result.unit}
-              />
-            </div>
-
-            {/* Highlights */}
-            <div className="lg:col-span-2">
-              <HighlightsPanel flags={result.summary.flags} />
-            </div>
+          {/* Balance sheet: structural analysis */}
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
+              Balance Sheet
+            </h2>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Capital structure, liquidity, and asset quality.
+            </p>
           </div>
+
+          <SummaryPanel summary={result.summary} companyName={result.companyName} />
+          <MetricsCards ratios={result.ratios} currency={currencySymbol} unit={result.unit} />
+          <BalanceSheetTable
+            periods={result.periods}
+            currency={currencySymbol}
+            unit={result.unit}
+          />
 
           {/* Income statement + cash flow (EDGAR ticker flow only) */}
           {result.financials && result.financials.periods.length > 0 && (
             <div className="space-y-5 pt-6 mt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
               <div>
-                <h2
-                  className="text-xl sm:text-2xl font-semibold tracking-tight"
-                  style={{ color: 'var(--text-primary)' }}
-                >
+                <h2 className="text-lg sm:text-xl font-semibold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
                   Earnings & Cash Flow
                 </h2>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   {result.financials.isAnnual ? 'Fiscal-year' : 'Quarterly'} income statement and cash flow — margins, growth, and cash generation.
                 </p>
               </div>
 
               <FinancialsSummaryPanel summary={result.financials.summary} />
-
               <FinancialsMetricsCards
                 income={result.financials.incomeRatios}
                 cashFlow={result.financials.cashFlowRatios}
               />
-
               <FinancialsTable periods={result.financials.periods} />
             </div>
           )}
