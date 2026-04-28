@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, Legend, Cell,
+    ResponsiveContainer, Legend,
 } from 'recharts';
 import { OptionsData, OptionContract } from '@/types/stock';
 
@@ -31,6 +31,7 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
     const [showDetail, setShowDetail] = useState(false);
     const [sortField, setSortField] = useState<keyof StrikeRow>('strike');
     const [sortAsc, setSortAsc] = useState(true);
+    const [bandPct, setBandPct] = useState<number>(15); // ±% of spot for chart band
 
     const fetchOptions = useCallback(async (date?: string) => {
         setLoading(true);
@@ -131,11 +132,14 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
 
     const allRows = Array.from(strikeMap.values()).sort((a, b) => a.strike - b.strike);
 
-    // Filter to strikes near money for chart (± 15 strikes from ATM)
-    const atmIndex = allRows.findIndex(r => r.strike >= (data.underlyingPrice || 0));
-    const chartStart = Math.max(0, atmIndex - 15);
-    const chartEnd = Math.min(allRows.length, atmIndex + 16);
-    const chartRows = allRows.slice(chartStart, chartEnd);
+    // Filter chart strikes to ±bandPct of spot. Falls back to all rows if spot
+    // is missing or the band excludes everything.
+    const spot = data.underlyingPrice || 0;
+    const bandFrac = Math.max(0.5, Math.min(100, bandPct)) / 100;
+    const chartRows = spot > 0
+        ? allRows.filter(r => Math.abs(r.strike - spot) / spot <= bandFrac)
+        : allRows;
+    const effectiveRows = chartRows.length > 0 ? chartRows : allRows;
 
     // Sorted rows for detail table
     const sortedRows = [...allRows].sort((a, b) => {
@@ -154,13 +158,13 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
             {/* Header */}
             <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <div>
-                    <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Options Chain</h3>
+                    <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Single-Expiration Chain</h3>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        Volume &amp; open interest by strike
+                        OI &amp; Volume by strike for one expiration
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                     <select
                         value={selectedDate}
                         onChange={(e) => handleDateChange(e.target.value)}
@@ -177,6 +181,27 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                             </option>
                         ))}
                     </select>
+
+                    {!showDetail && (
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Band ±</span>
+                            <input
+                                type="number"
+                                min={1}
+                                max={100}
+                                step={1}
+                                value={bandPct}
+                                onChange={(e) => setBandPct(Math.max(1, Math.min(100, Number(e.target.value) || 0)))}
+                                className="w-14 text-xs tabular-nums rounded-md px-2 py-1 outline-none"
+                                style={{
+                                    background: 'var(--bg-tertiary)',
+                                    color: 'var(--text-primary)',
+                                    border: '1px solid var(--border-color)',
+                                }}
+                            />
+                            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>%</span>
+                        </div>
+                    )}
 
                     <button
                         onClick={() => setShowDetail(!showDetail)}
@@ -211,9 +236,11 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
             {/* Chart view */}
             {!showDetail && (
                 <div className="p-5">
-                    <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>Volume by Strike</p>
-                    <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={chartRows} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                    <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                        OI + Volume by Strike · ±{bandPct}% of spot · solid base = OI, lighter top = Volume
+                    </p>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={effectiveRows} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
                             <XAxis
                                 dataKey="strike"
@@ -233,57 +260,16 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                                 labelFormatter={(v) => `Strike $${v}`}
                             />
                             <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text-muted)' }} />
-                            <Bar dataKey="callVolume" name="Call Vol" fill="#22c55e" radius={[2, 2, 0, 0]} maxBarSize={20}>
-                                {chartRows.map((entry, i) => (
-                                    <Cell key={i} fillOpacity={entry.strike <= (data.underlyingPrice || 0) ? 1 : 0.4} />
-                                ))}
-                            </Bar>
-                            <Bar dataKey="putVolume" name="Put Vol" fill="#ef4444" radius={[2, 2, 0, 0]} maxBarSize={20}>
-                                {chartRows.map((entry, i) => (
-                                    <Cell key={i} fillOpacity={entry.strike >= (data.underlyingPrice || 0) ? 1 : 0.4} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-
-                    <p className="text-xs mb-3 mt-6" style={{ color: 'var(--text-muted)' }}>Open Interest by Strike</p>
-                    <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={chartRows} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                            <XAxis
-                                dataKey="strike"
-                                tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-                                tickFormatter={(v) => `$${v}`}
-                            />
-                            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickFormatter={fmt} />
-                            <Tooltip
-                                contentStyle={{
-                                    background: 'var(--bg-tertiary)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: 8,
-                                    fontSize: 12,
-                                    color: 'var(--text-primary)',
-                                }}
-                                formatter={((value: number | undefined, name: string) => [fmt(value ?? 0), name]) as any}
-                                labelFormatter={(v) => `Strike $${v}`}
-                            />
-                            <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text-muted)' }} />
-                            <Bar dataKey="callOI" name="Call OI" fill="#22c55e" radius={[2, 2, 0, 0]} maxBarSize={20}>
-                                {chartRows.map((entry, i) => (
-                                    <Cell key={i} fillOpacity={entry.strike <= (data.underlyingPrice || 0) ? 1 : 0.4} />
-                                ))}
-                            </Bar>
-                            <Bar dataKey="putOI" name="Put OI" fill="#ef4444" radius={[2, 2, 0, 0]} maxBarSize={20}>
-                                {chartRows.map((entry, i) => (
-                                    <Cell key={i} fillOpacity={entry.strike >= (data.underlyingPrice || 0) ? 1 : 0.4} />
-                                ))}
-                            </Bar>
+                            <Bar dataKey="callOI" name="Call OI" stackId="calls" fill="#22c55e" maxBarSize={22} />
+                            <Bar dataKey="callVolume" name="Call Vol" stackId="calls" fill="#22c55e" fillOpacity={0.4} maxBarSize={22} radius={[2, 2, 0, 0]} />
+                            <Bar dataKey="putOI" name="Put OI" stackId="puts" fill="#ef4444" maxBarSize={22} />
+                            <Bar dataKey="putVolume" name="Put Vol" stackId="puts" fill="#ef4444" fillOpacity={0.4} maxBarSize={22} radius={[2, 2, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
 
                     {data.underlyingPrice > 0 && (
                         <p className="text-[10px] text-center mt-2" style={{ color: 'var(--text-muted)' }}>
-                            Underlying: ${data.underlyingPrice.toFixed(2)} · Brighter bars = in the money
+                            Underlying: ${data.underlyingPrice.toFixed(2)}
                         </p>
                     )}
                 </div>
