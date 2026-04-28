@@ -15,6 +15,7 @@ const TTL = {
   quote: 30 * 1000,               // 30 s
   historical: 60 * 60 * 1000,     // 1 h (daily bars)
   optionsChain: 60 * 1000,        // 1 min
+  earnings: 6 * 60 * 60 * 1000,   // 6 h (calendar changes slowly)
 } as const;
 
 /**
@@ -128,6 +129,83 @@ export async function getHistoricalData(
     } catch (error) {
         console.error('Historical data error:', error);
         return [];
+    }
+  });
+}
+
+/**
+ * Get the next earnings date for a symbol, if Yahoo has one on file.
+ *
+ * Returns the earliest future earnings date from `calendarEvents.earnings.earningsDate`.
+ * Yahoo often ships this as a range [start, end]; we take the nearer end and
+ * treat anything in the past as "no upcoming date".
+ */
+export async function getNextEarningsDate(symbol: string): Promise<{
+  date: string | null;
+  isEstimate: boolean;
+}> {
+  return memoize('yf:earnings', symbol.toUpperCase(), TTL.earnings, async () => {
+    try {
+      const summary: any = await yahooFinance.quoteSummary(
+        symbol,
+        { modules: ['calendarEvents'] },
+        { validateResult: false },
+      );
+
+      const earnings = summary?.calendarEvents?.earnings;
+      const rawDates: unknown[] = Array.isArray(earnings?.earningsDate) ? earnings.earningsDate : [];
+
+      const now = Date.now();
+      const futureDates = rawDates
+        .map(d => (d instanceof Date ? d.getTime() : new Date(d as string).getTime()))
+        .filter(t => Number.isFinite(t) && t >= now)
+        .sort((a, b) => a - b);
+
+      if (futureDates.length === 0) {
+        return { date: null, isEstimate: false };
+      }
+
+      return {
+        date: new Date(futureDates[0]).toISOString().split('T')[0],
+        isEstimate: Boolean(earnings?.isEarningsDateEstimate),
+      };
+    } catch (error) {
+      console.error('Earnings date error:', error);
+      return { date: null, isEstimate: false };
+    }
+  });
+}
+
+/**
+ * Past quarterly earnings dates from Yahoo's `earningsHistory`. The `quarter`
+ * field is the fiscal-quarter-end date (not the report date) — close enough
+ * to anchor a vol-spike marker on a chart. Returns up to 4 most recent quarters,
+ * sorted oldest → newest.
+ */
+export async function getPastEarningsDates(symbol: string): Promise<{ date: string; period: string }[]> {
+  return memoize('yf:earningsHistory', symbol.toUpperCase(), TTL.earnings, async () => {
+    try {
+      const summary: any = await yahooFinance.quoteSummary(
+        symbol,
+        { modules: ['earningsHistory'] },
+        { validateResult: false },
+      );
+      const history: any[] = summary?.earningsHistory?.history ?? [];
+      const out: { date: string; period: string }[] = [];
+      for (const h of history) {
+        const q = h?.quarter;
+        if (!q) continue;
+        const t = q instanceof Date ? q.getTime() : new Date(q).getTime();
+        if (!Number.isFinite(t)) continue;
+        out.push({
+          date: new Date(t).toISOString().split('T')[0],
+          period: typeof h?.period === 'string' ? h.period : '',
+        });
+      }
+      return out.sort((a, b) => a.date.localeCompare(b.date));
+    } catch (error) {
+      console.error('Earnings history error:', error);
+      return [];
     }
   });
 }

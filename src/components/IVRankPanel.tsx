@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Area, AreaChart, CartesianGrid, ReferenceDot, ReferenceLine,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts';
+
+interface VolPoint { date: string; hv: number }
+interface EarningsMarker { date: string; period: string }
 
 interface IVRankData {
   currentHV: number;
@@ -11,50 +18,42 @@ interface IVRankData {
   currentIV: number | null;
   ivHvRatio: number | null;
   interpretation: 'rich' | 'cheap' | 'neutral' | 'insufficient_data';
-  series: { date: string; hv: number }[];
+  series: VolPoint[];
+  fullSeries: VolPoint[];
+  earnings: EarningsMarker[];
+  ivExpiration: string | null;
 }
 
 interface Props {
   ticker: string;
 }
 
-const INTERP_META: Record<string, { label: string; color: string; blurb: string }> = {
-  rich: {
-    label: 'Options look rich',
-    color: '#22c55e',
-    blurb: 'Implied vol is trading well above realized — premium sellers (short calls, credit spreads) have an edge. Long calls are expensive here.',
-  },
-  cheap: {
-    label: 'Options look cheap',
-    color: '#3b82f6',
-    blurb: 'Implied vol is trading below or near realized — buying premium (long calls/puts) is relatively inexpensive. Selling premium earns less cushion.',
-  },
-  neutral: {
-    label: 'Neutral pricing',
-    color: 'var(--text-secondary)',
-    blurb: 'IV is roughly in line with realized vol. No strong edge for buying or selling premium on volatility alone.',
-  },
-  insufficient_data: {
-    label: 'Insufficient history',
-    color: 'var(--text-muted)',
-    blurb: 'Not enough price history to compute a 1-year volatility range for this ticker.',
-  },
+const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+const fmtMonth = (d: string) => {
+  const [y, m] = d.split('-');
+  return `${m}/${y.slice(2)}`;
 };
 
-function pct(v: number) {
-  return `${(v * 100).toFixed(1)}%`;
-}
+const RANGE_OPTIONS = [
+  { label: '6M', days: 126 },
+  { label: '1Y', days: 252 },
+  { label: '2Y', days: 504 },
+];
 
 export default function IVRankPanel({ ticker }: Props) {
   const [data, setData] = useState<IVRankData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rangeDays, setRangeDays] = useState<number>(252);
+  const [pickedDate, setPickedDate] = useState<string>('');
 
   useEffect(() => {
     if (!ticker) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setData(null);
+    setPickedDate('');
 
     fetch(`/api/options/${ticker}/iv-rank`)
       .then(async r => {
@@ -68,6 +67,63 @@ export default function IVRankPanel({ ticker }: Props) {
 
     return () => { cancelled = true; };
   }, [ticker]);
+
+  const chartSeries = useMemo(() => {
+    if (!data) return [];
+    return data.fullSeries.slice(-rangeDays);
+  }, [data, rangeDays]);
+
+  const visibleEarnings = useMemo(() => {
+    if (!data || chartSeries.length === 0) return [];
+    const startDate = chartSeries[0].date;
+    const endDate = chartSeries[chartSeries.length - 1].date;
+    const dateSet = new Set(chartSeries.map(p => p.date));
+    return data.earnings
+      .filter(e => e.date >= startDate && e.date <= endDate)
+      .map(e => {
+        // Snap to nearest trading day so the marker lands on the line.
+        if (dateSet.has(e.date)) return e;
+        const snapped = chartSeries.reduce((best, p) => {
+          const dBest = Math.abs(new Date(best.date).getTime() - new Date(e.date).getTime());
+          const dCurr = Math.abs(new Date(p.date).getTime() - new Date(e.date).getTime());
+          return dCurr < dBest ? { date: p.date, hv: p.hv } : best;
+        }, { date: chartSeries[0].date, hv: chartSeries[0].hv });
+        return { ...e, date: snapped.date };
+      });
+  }, [data, chartSeries]);
+
+  const earningsHvByDate = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!data) return map;
+    const seriesMap = new Map(data.fullSeries.map(p => [p.date, p.hv]));
+    for (const e of visibleEarnings) {
+      const hv = seriesMap.get(e.date);
+      if (hv != null) map.set(e.date, hv);
+    }
+    return map;
+  }, [data, visibleEarnings]);
+
+  const pickedPoint = useMemo(() => {
+    if (!data || !pickedDate) return null;
+    // Snap user-picked date to nearest available trading day in the full series.
+    const target = new Date(pickedDate).getTime();
+    if (!Number.isFinite(target)) return null;
+    let best = data.fullSeries[0];
+    let bestDiff = Infinity;
+    for (const p of data.fullSeries) {
+      const diff = Math.abs(new Date(p.date).getTime() - target);
+      if (diff < bestDiff) { best = p; bestDiff = diff; }
+    }
+    return best ?? null;
+  }, [data, pickedDate]);
+
+  const dateBounds = useMemo(() => {
+    if (!data || data.fullSeries.length === 0) return null;
+    return {
+      min: data.fullSeries[0].date,
+      max: data.fullSeries[data.fullSeries.length - 1].date,
+    };
+  }, [data]);
 
   if (loading) {
     return (
@@ -85,64 +141,159 @@ export default function IVRankPanel({ ticker }: Props) {
     );
   }
 
-  const meta = INTERP_META[data.interpretation];
   const rankColor = data.hvRank >= 70 ? '#22c55e' : data.hvRank <= 30 ? '#3b82f6' : 'var(--text-secondary)';
 
   return (
     <div className="rounded-xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-      <div className="flex items-start justify-between mb-4 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
           <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Volatility Rank
+            Volatility
           </h3>
           <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            HV-based proxy · trailing 1 year
+            HV (annualized 30d realized) over time · IV sampled from {data.ivExpiration ?? 'nearest'} expiration · ◆ = quarter-end
           </p>
         </div>
-        <span
-          className="text-xs font-medium px-2 py-1 rounded-md"
-          style={{ background: 'rgba(255,255,255,0.03)', color: meta.color, border: `1px solid ${meta.color}33` }}
-        >
-          {meta.label}
-        </span>
+        <div className="flex gap-1">
+          {RANGE_OPTIONS.map(opt => {
+            const active = rangeDays === opt.days;
+            return (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => setRangeDays(opt.days)}
+                className="text-[10px] px-2 py-1 rounded-md transition-colors cursor-pointer"
+                style={{
+                  background: active ? 'rgba(59,130,246,0.12)' : 'transparent',
+                  border: `1px solid ${active ? '#3b82f6' : 'var(--border-color)'}`,
+                  color: active ? '#3b82f6' : 'var(--text-muted)',
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Primary stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <Stat label="HV Rank" value={`${data.hvRank.toFixed(0)}`} suffix="/100" valueColor={rankColor} />
-        <Stat label="HV Percentile" value={`${data.hvPercentile.toFixed(0)}`} suffix="%" />
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <Stat label="Current IV" value={data.currentIV != null ? pct(data.currentIV) : '—'} />
+        <Stat label="Current HV" value={pct(data.currentHV)} />
         <Stat
-          label="Current IV (ATM)"
-          value={data.currentIV != null ? pct(data.currentIV) : '—'}
-        />
-        <Stat
-          label="IV / HV Ratio"
+          label="IV / HV"
           value={data.ivHvRatio != null ? `${data.ivHvRatio.toFixed(2)}x` : '—'}
-          valueColor={
-            data.ivHvRatio == null ? undefined
-              : data.ivHvRatio >= 1.3 ? '#22c55e'
-              : data.ivHvRatio <= 0.9 ? '#3b82f6'
-              : undefined
-          }
         />
       </div>
 
-      {/* HV range visualization */}
-      <div className="mb-4">
+      <div className="mb-3">
+        <ResponsiveContainer width="100%" height={180}>
+          <AreaChart data={chartSeries} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="hvFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+            <XAxis
+              dataKey="date"
+              tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+              tickFormatter={fmtMonth}
+              minTickGap={40}
+            />
+            <YAxis
+              tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+              tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+              width={36}
+            />
+            <Tooltip
+              contentStyle={{
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 8,
+                fontSize: 12,
+                color: 'var(--text-primary)',
+              }}
+              labelFormatter={(d) => d as string}
+              formatter={((value: number | undefined) => [pct(value ?? 0), 'HV']) as any}
+            />
+            <Area type="monotone" dataKey="hv" stroke="#3b82f6" strokeWidth={1.5} fill="url(#hvFill)" />
+            {visibleEarnings.map(e => (
+              <ReferenceLine
+                key={`l-${e.date}`}
+                x={e.date}
+                stroke="#f59e0b"
+                strokeDasharray="2 3"
+                strokeOpacity={0.5}
+              />
+            ))}
+            {visibleEarnings.map(e => {
+              const hv = earningsHvByDate.get(e.date);
+              if (hv == null) return null;
+              return (
+                <ReferenceDot
+                  key={`d-${e.date}`}
+                  x={e.date}
+                  y={hv}
+                  r={4}
+                  fill="#f59e0b"
+                  stroke="var(--bg-secondary)"
+                  strokeWidth={1.5}
+                />
+              );
+            })}
+            {pickedPoint && chartSeries.some(p => p.date === pickedPoint.date) && (
+              <ReferenceDot
+                x={pickedPoint.date}
+                y={pickedPoint.hv}
+                r={5}
+                fill="#22c55e"
+                stroke="var(--bg-secondary)"
+                strokeWidth={1.5}
+              />
+            )}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {dateBounds && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+          <label className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            HV on
+          </label>
+          <input
+            type="date"
+            value={pickedDate}
+            min={dateBounds.min}
+            max={dateBounds.max}
+            onChange={(e) => setPickedDate(e.target.value)}
+            className="text-xs rounded-md px-2 py-1 outline-none"
+            style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+          />
+          {pickedPoint ? (
+            <span className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+              {pickedPoint.date} → <strong style={{ color: 'var(--text-primary)' }}>{pct(pickedPoint.hv)}</strong>
+              <span className="ml-2" style={{ color: 'var(--text-muted)' }}>
+                vs. now {pct(data.currentHV)} ({((pickedPoint.hv - data.currentHV) * 100).toFixed(1)} pts)
+              </span>
+            </span>
+          ) : (
+            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              Pick any trading day in the last 2 years.
+            </span>
+          )}
+        </div>
+      )}
+
+      <div>
         <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--text-muted)' }}>
-          <span>52w Low: {pct(data.hv52wLow)}</span>
-          <span>Current HV: <span style={{ color: 'var(--text-primary)' }}>{pct(data.currentHV)}</span></span>
-          <span>52w High: {pct(data.hv52wHigh)}</span>
+          <span>52w Low {pct(data.hv52wLow)}</span>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            HV Rank <span className="tabular-nums font-semibold" style={{ color: rankColor }}>{data.hvRank.toFixed(0)}</span>
+          </span>
+          <span>52w High {pct(data.hv52wHigh)}</span>
         </div>
         <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
-          <div
-            className="absolute top-0 h-full rounded-full"
-            style={{
-              left: 0,
-              width: `${Math.max(2, Math.min(100, data.hvRank))}%`,
-              background: `linear-gradient(90deg, #3b82f6 0%, ${rankColor} 100%)`,
-            }}
-          />
           <div
             className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3"
             style={{
@@ -152,39 +303,18 @@ export default function IVRankPanel({ ticker }: Props) {
           />
         </div>
       </div>
-
-      <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        {meta.blurb}
-      </p>
-
-      <p className="text-[10px] mt-3 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-        Note: Yahoo does not provide historical implied volatility. This panel ranks today&apos;s 30-day realized
-        volatility against the trailing year as a proxy, and compares current ATM IV to current HV to estimate
-        the volatility risk premium.
-      </p>
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  suffix,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  suffix?: string;
-  valueColor?: string;
-}) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
         {label}
       </p>
-      <p className="text-lg font-semibold tabular-nums" style={{ color: valueColor ?? 'var(--text-primary)' }}>
+      <p className="text-lg font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
         {value}
-        {suffix && <span className="text-xs font-normal ml-0.5" style={{ color: 'var(--text-muted)' }}>{suffix}</span>}
       </p>
     </div>
   );
