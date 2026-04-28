@@ -16,6 +16,57 @@ function normalCdf(x: number): number {
   return x > 0 ? 1 - p : p;
 }
 
+const NORMAL_PDF_COEFF = 0.3989422804014337; // 1/sqrt(2π)
+function normalPdf(x: number): number {
+  return NORMAL_PDF_COEFF * Math.exp(-(x * x) / 2);
+}
+
+/** Black-Scholes call price. */
+export function bsCallPrice(
+  spot: number,
+  strike: number,
+  yearsToExpiry: number,
+  iv: number,
+  rate: number = RISK_FREE_RATE,
+): number {
+  if (yearsToExpiry <= 0 || iv <= 0) return Math.max(0, spot - strike);
+  const sqrtT = Math.sqrt(yearsToExpiry);
+  const d1 = (Math.log(spot / strike) + (rate + (iv * iv) / 2) * yearsToExpiry) / (iv * sqrtT);
+  const d2 = d1 - iv * sqrtT;
+  return spot * normalCdf(d1) - strike * Math.exp(-rate * yearsToExpiry) * normalCdf(d2);
+}
+
+/**
+ * Invert Black-Scholes for IV given a call's market price (Newton-Raphson,
+ * starts at 30%, bounded [1%, 500%]). Returns null below intrinsic value or
+ * if the solver leaves bounds — both signal a stale/garbage input price.
+ */
+export function impliedVolFromCall(
+  spot: number,
+  strike: number,
+  yearsToExpiry: number,
+  callPrice: number,
+  rate: number = RISK_FREE_RATE,
+): number | null {
+  if (spot <= 0 || strike <= 0 || yearsToExpiry <= 0 || callPrice <= 0) return null;
+  const intrinsic = Math.max(0, spot - strike * Math.exp(-rate * yearsToExpiry));
+  if (callPrice < intrinsic - 1e-6) return null;
+
+  let iv = 0.3;
+  for (let i = 0; i < 50; i++) {
+    const sqrtT = Math.sqrt(yearsToExpiry);
+    const d1 = (Math.log(spot / strike) + (rate + (iv * iv) / 2) * yearsToExpiry) / (iv * sqrtT);
+    const price = bsCallPrice(spot, strike, yearsToExpiry, iv, rate);
+    const vega = spot * normalPdf(d1) * sqrtT;
+    if (vega < 1e-8) return null;
+    const diff = price - callPrice;
+    if (Math.abs(diff) < 1e-4) return iv;
+    iv -= diff / vega;
+    if (iv < 0.01 || iv > 5) return null;
+  }
+  return null;
+}
+
 /** Call delta. Returns 0..1. */
 export function callDelta(
   spot: number,

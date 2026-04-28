@@ -44,7 +44,9 @@ export async function GET(
 
     const closes = history.map(h => ({ date: h.date, close: h.close }));
     const series = rollingRealizedVol(closes, 30);
-    const currentIV = ivChain ? atmCallIV(ivChain.calls, ivChain.underlyingPrice) : null;
+    const ivResult = ivChain ? atmCallIV(ivChain.calls, ivChain.underlyingPrice) : null;
+    const currentIV = ivResult?.iv ?? null;
+    const ivSource = ivResult?.source ?? null;
     const ivExpiration = ivChain?.calls?.[0]?.expiration ?? null;
     const rank = computeIVRank(series, currentIV);
 
@@ -55,6 +57,7 @@ export async function GET(
       fullSeries: series,
       earnings,
       ivExpiration,
+      ivSource,
     });
   } catch (error) {
     console.error('IV Rank error:', error);

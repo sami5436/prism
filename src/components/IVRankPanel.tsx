@@ -22,6 +22,7 @@ interface IVRankData {
   fullSeries: VolPoint[];
   earnings: EarningsMarker[];
   ivExpiration: string | null;
+  ivSource: 'quote' | 'last' | null;
 }
 
 interface Props {
@@ -177,7 +178,11 @@ export default function IVRankPanel({ ticker }: Props) {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <Stat label="Current IV" value={data.currentIV != null ? pct(data.currentIV) : '—'} />
+        <Stat
+          label="Current IV"
+          value={data.currentIV != null ? pct(data.currentIV) : '—'}
+          tag={data.ivSource === 'last' ? 'last trade' : null}
+        />
         <Stat label="Current HV" value={pct(data.currentHV)} />
         <Stat
           label="IV / HV"
@@ -307,14 +312,25 @@ export default function IVRankPanel({ ticker }: Props) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, tag }: { label: string; value: string; tag?: string | null }) {
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>
         {label}
       </p>
-      <p className="text-lg font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+      <p className="text-lg font-semibold tabular-nums flex items-baseline gap-1.5" style={{ color: 'var(--text-primary)' }}>
         {value}
+        {tag && (
+          <span
+            className="text-[10px] font-normal uppercase tracking-wider px-1.5 py-0.5 rounded"
+            style={{
+              background: 'rgba(245,158,11,0.12)',
+              color: '#f59e0b',
+            }}
+          >
+            {tag}
+          </span>
+        )}
       </p>
     </div>
   );

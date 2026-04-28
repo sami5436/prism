@@ -4,8 +4,12 @@
 // ranking basis, then compare current ATM IV against current HV to gauge
 // whether options are priced rich or cheap.
 
+import { daysToExpiration, impliedVolFromCall } from './optionsMath';
+
 const TRADING_DAYS_PER_YEAR = 252;
 const HV_WINDOW = 30;
+
+export type IVSource = 'quote' | 'last';
 
 export interface VolSeriesPoint {
   date: string;
@@ -135,53 +139,87 @@ export function selectIVExpiration(
   return pool[0].date;
 }
 
+interface CallForIV {
+  strike: number;
+  impliedVolatility: number;
+  openInterest?: number;
+  bid?: number;
+  ask?: number;
+  lastPrice?: number;
+  volume?: number;
+  expiration?: string;
+}
+
 /**
- * Average IV of liquid calls within ±2.5% of spot. Filters out contracts with
- * zero IV (Yahoo placeholder), zero OI, and zero bid (untradeable). One stale
- * contract pinning IV to 80% should not move the answer.
+ * Average IV of calls near spot. Two sources, tried in order:
+ *  1. `quote`: Yahoo's per-contract IV when bid/ask/OI indicate a live market.
+ *  2. `last`:  Black-Scholes inverted from `lastPrice` for contracts that
+ *              traded today — used when the market is closed and bid=ask=0
+ *              but volume + lastPrice from the cash session are still present.
+ * Returns null when neither path produces a usable reading.
  */
 export function atmCallIV(
-  calls: {
-    strike: number;
-    impliedVolatility: number;
-    openInterest?: number;
-    bid?: number;
-    ask?: number;
-  }[],
+  calls: CallForIV[],
   underlyingPrice: number,
-): number | null {
+): { iv: number; source: IVSource } | null {
   if (!calls.length || !underlyingPrice) return null;
 
-  const isLiquid = (c: { openInterest?: number; bid?: number; ask?: number }) => {
+  const dist = (c: { strike: number }) =>
+    Math.abs(c.strike - underlyingPrice) / underlyingPrice;
+
+  const isQuoteLiquid = (c: CallForIV) => {
     const oi = c.openInterest ?? 0;
     const bid = c.bid ?? 0;
     const ask = c.ask ?? 0;
-    if (oi < 10) return false;
-    if (bid <= 0) return false;
-    if (ask <= 0) return false;
-    // Reject absurd bid-ask spreads (>50% of mid) — IV from those is noise.
+    if (oi < 10 || bid <= 0 || ask <= 0) return false;
     const mid = (bid + ask) / 2;
     if (mid > 0 && (ask - bid) / mid > 0.5) return false;
     return true;
   };
 
-  const valid = calls.filter(c => c.impliedVolatility > 0 && c.strike > 0);
-  if (!valid.length) return null;
-
-  const inBand = valid.filter(
-    c => Math.abs(c.strike - underlyingPrice) / underlyingPrice <= 0.025,
+  // 1) Quote-based: per-contract IV >= 5% rejects Yahoo's stale placeholders.
+  const quoteValid = calls.filter(
+    c => c.impliedVolatility >= 0.05 && c.strike > 0 && isQuoteLiquid(c),
   );
-  const candidates = inBand.length >= 2 ? inBand : valid;
-  const liquid = candidates.filter(isLiquid);
-  const pool = liquid.length >= 2 ? liquid : candidates;
+  if (quoteValid.length) {
+    const tight = quoteValid.filter(c => dist(c) <= 0.025);
+    const pool = tight.length >= 1 ? tight : quoteValid.filter(c => dist(c) <= 0.10);
+    if (pool.length) {
+      const nearest = pool
+        .slice()
+        .sort((a, b) => dist(a) - dist(b))
+        .slice(0, 3);
+      const avg = nearest.reduce((s, c) => s + c.impliedVolatility, 0) / nearest.length;
+      if (avg > 0) return { iv: avg, source: 'quote' };
+    }
+  }
 
-  // Sort by distance to spot, take the 3 nearest, average.
-  const nearest = pool
+  // 2) Last-trade fallback: invert BS on lastPrice for contracts that printed
+  // volume today and sit within ±10% of spot.
+  const traded = calls.filter(
+    c =>
+      (c.volume ?? 0) > 0 &&
+      (c.lastPrice ?? 0) > 0 &&
+      c.strike > 0 &&
+      c.expiration &&
+      dist(c) <= 0.10,
+  );
+  if (!traded.length) return null;
+
+  const candidates = traded
     .slice()
-    .sort((a, b) => Math.abs(a.strike - underlyingPrice) - Math.abs(b.strike - underlyingPrice))
-    .slice(0, 3);
+    .sort((a, b) => dist(a) - dist(b))
+    .slice(0, 5);
 
-  if (!nearest.length) return null;
-  const avg = nearest.reduce((s, c) => s + c.impliedVolatility, 0) / nearest.length;
-  return avg > 0 ? avg : null;
+  const ivs: number[] = [];
+  for (const c of candidates) {
+    const dte = daysToExpiration(c.expiration!);
+    if (dte <= 0) continue;
+    const iv = impliedVolFromCall(underlyingPrice, c.strike, dte / 365, c.lastPrice!);
+    if (iv != null && iv >= 0.05) ivs.push(iv);
+    if (ivs.length >= 3) break;
+  }
+  if (!ivs.length) return null;
+  const avg = ivs.reduce((s, v) => s + v, 0) / ivs.length;
+  return avg > 0 ? { iv: avg, source: 'last' } : null;
 }
