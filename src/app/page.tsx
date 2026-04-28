@@ -6,6 +6,7 @@ import StockHeader from '@/components/StockHeader';
 import PriceChart from '@/components/PriceChart';
 import VolumeChart from '@/components/VolumeChart';
 import IndicatorsPanel from '@/components/IndicatorsPanel';
+import QuarterlyReturnsPanel from '@/components/QuarterlyReturnsPanel';
 import AISummaryCard from '@/components/AISummary';
 import ThemeToggle from '@/components/ThemeToggle';
 import ModuleNav from '@/components/shared/ModuleNav';
@@ -267,6 +268,7 @@ export default function Home() {
                     historical={stockData.historical}
                     indicators={stockData.indicators}
                   />
+                  <QuarterlyReturnsPanel historical={stockData.historical} />
                 </div>
                 <div className="space-y-6">
                   <AISummaryCard analysis={stockData.analysis} />
