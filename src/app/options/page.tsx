@@ -4,44 +4,68 @@ import { useState, useCallback } from 'react';
 import TickerSearch from '@/components/TickerSearch';
 import OptionsChain from '@/components/OptionsChain';
 import IVRankPanel from '@/components/IVRankPanel';
+import PriceLevelsPanel from '@/components/PriceLevelsPanel';
 import CallPicks from '@/components/CallPicks';
+import DteRangeControl, { DTE_DEFAULT, DteRange } from '@/components/DteRangeControl';
 
 export default function OptionsPage() {
   const [ticker, setTicker] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [dte, setDte] = useState<DteRange>(DTE_DEFAULT);
 
   const handleSelect = useCallback((t: string) => {
     setIsLoading(true);
     setTicker(t);
-    // OptionsChain handles its own loading state; we just clear the spinner after a tick
     setTimeout(() => setIsLoading(false), 300);
   }, []);
+
+  const rangeValid = dte.min <= dte.max;
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-16">
 
-        {/* Page header */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Options Chain
+            Options
           </h1>
           <p className="mt-1 text-base" style={{ color: 'var(--text-secondary)' }}>
-            Volume, open interest, and implied volatility by strike and expiration.
+            Volatility, open interest, and call candidates by expiration window.
           </p>
         </div>
 
-        {/* Ticker search */}
         <div className="max-w-sm mb-8">
           <TickerSearch onSelect={handleSelect} isLoading={isLoading} />
         </div>
 
-        {/* Options chain */}
         {ticker ? (
           <div className="space-y-6">
             <IVRankPanel ticker={ticker} />
-            <CallPicks ticker={ticker} />
             <OptionsChain ticker={ticker} />
+
+            <div
+              className="pt-6 mt-2"
+              style={{ borderTop: '1px solid var(--border-color)' }}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    By DTE Window
+                  </h2>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    Aggregate OI and buy candidates filtered by days to expiration
+                  </p>
+                </div>
+                <DteRangeControl value={dte} onChange={setDte} />
+              </div>
+
+              {rangeValid && (
+                <div className="space-y-6">
+                  <PriceLevelsPanel ticker={ticker} minDte={dte.min} maxDte={dte.max} />
+                  <CallPicks ticker={ticker} minDte={dte.min} maxDte={dte.max} />
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div

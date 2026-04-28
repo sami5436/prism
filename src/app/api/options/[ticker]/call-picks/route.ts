@@ -9,8 +9,17 @@ import {
   DEFAULT_DTE,
 } from '@/lib/optionsMath';
 
-// Cap the fan-out to protect against tickers with 20+ expirations (SPY).
-const MAX_EXPIRATIONS = 10;
+// Cap the fan-out to protect against tickers with 30+ expirations (SPY). When
+// the user picks a wide window we sample evenly so coverage spans the range.
+const MAX_EXPIRATIONS = 24;
+
+function sampleEvenly<T>(items: T[], maxCount: number): T[] {
+  if (items.length <= maxCount) return items;
+  const step = (items.length - 1) / (maxCount - 1);
+  const out: T[] = [];
+  for (let i = 0; i < maxCount; i++) out.push(items[Math.round(i * step)]);
+  return Array.from(new Set(out));
+}
 
 function parseDte(raw: string | null, fallback: number): number {
   if (!raw) return fallback;
@@ -53,12 +62,14 @@ export async function GET(
     // Keep only expirations that fall inside the requested DTE range. Always
     // include the first expiration (already fetched) so we never waste the round-trip.
     const now = new Date();
-    const withinRange = initial.expirationDates.filter((d: string) => {
+    const withinRange: string[] = initial.expirationDates.filter((d: string) => {
       const dte = daysToExpiration(d, now);
       return dte >= minDte && dte <= maxDte;
     });
-    const targetExpirations = (withinRange.length ? withinRange : [initial.expirationDates[0]])
-      .slice(0, MAX_EXPIRATIONS);
+    const targetExpirations: string[] = sampleEvenly<string>(
+      withinRange.length ? withinRange : [initial.expirationDates[0] as string],
+      MAX_EXPIRATIONS,
+    );
 
     const firstExp = initial.expirationDates[0];
     const allCalls: RawCall[] = [];
