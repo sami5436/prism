@@ -16,6 +16,8 @@ const TTL = {
   historical: 60 * 60 * 1000,     // 1 h (daily bars)
   optionsChain: 60 * 1000,        // 1 min
   earnings: 6 * 60 * 60 * 1000,   // 6 h (calendar changes slowly)
+  news: 15 * 60 * 1000,           // 15 min
+  analyst: 6 * 60 * 60 * 1000,    // 6 h (ratings change slowly)
 } as const;
 
 /**
@@ -206,6 +208,115 @@ export async function getPastEarningsDates(symbol: string): Promise<{ date: stri
     } catch (error) {
       console.error('Earnings history error:', error);
       return [];
+    }
+  });
+}
+
+export interface NewsItem {
+  title: string;
+  publisher: string;
+  link: string;
+  publishedAt: string; // ISO
+  thumbnail: string | null;
+}
+
+/**
+ * Recent news headlines for a ticker via Yahoo's `search` endpoint. Items
+ * without a title or link are dropped — we'd render them as broken cards.
+ */
+export async function getNews(symbol: string, count = 6): Promise<NewsItem[]> {
+  return memoize('yf:news', `${symbol.toUpperCase()}:${count}`, TTL.news, async () => {
+    try {
+      const result: any = await yahooFinance.search(
+        symbol,
+        { newsCount: count, quotesCount: 0 },
+        { validateResult: false },
+      );
+      const news: any[] = result?.news || [];
+      return news
+        .filter((n: any) => n?.title && n?.link)
+        .map((n: any) => {
+          const pub = n.providerPublishTime;
+          const publishedAt = pub instanceof Date
+            ? pub.toISOString()
+            : pub
+              ? new Date(pub).toISOString()
+              : new Date().toISOString();
+          return {
+            title: String(n.title),
+            publisher: String(n.publisher || 'Unknown'),
+            link: String(n.link),
+            publishedAt,
+            thumbnail: n.thumbnail?.resolutions?.[0]?.url ?? null,
+          };
+        })
+        .slice(0, count);
+    } catch (error) {
+      console.error('News error:', error);
+      return [];
+    }
+  });
+}
+
+export interface AnalystRatings {
+  currentPrice: number | null;
+  targetMean: number | null;
+  targetHigh: number | null;
+  targetLow: number | null;
+  targetMedian: number | null;
+  numAnalysts: number | null;
+  recommendationKey: string | null;   // 'strong_buy' | 'buy' | 'hold' | 'underperform' | 'sell'
+  recommendationMean: number | null;  // 1.0 = strong buy, 5.0 = strong sell
+  trend: {
+    strongBuy: number;
+    buy: number;
+    hold: number;
+    sell: number;
+    strongSell: number;
+  } | null;
+}
+
+/**
+ * Aggregate analyst targets + the current-month buy/hold/sell distribution.
+ * Drops to null on upstream errors so the panel can show "—" cleanly.
+ */
+export async function getAnalystRatings(symbol: string): Promise<AnalystRatings | null> {
+  return memoize('yf:analyst', symbol.toUpperCase(), TTL.analyst, async () => {
+    try {
+      const summary: any = await yahooFinance.quoteSummary(
+        symbol,
+        { modules: ['financialData', 'recommendationTrend'] },
+        { validateResult: false },
+      );
+      const fd = summary?.financialData || {};
+      const trendArr: any[] = summary?.recommendationTrend?.trend || [];
+      // Yahoo labels months 0m / -1m / -2m / -3m. Prefer current month, else
+      // most recent populated row.
+      const current =
+        trendArr.find(t => t?.period === '0m') ??
+        trendArr.find(t => (t?.strongBuy ?? 0) + (t?.buy ?? 0) + (t?.hold ?? 0) + (t?.sell ?? 0) + (t?.strongSell ?? 0) > 0) ??
+        null;
+
+      return {
+        currentPrice: typeof fd.currentPrice === 'number' ? fd.currentPrice : null,
+        targetMean: typeof fd.targetMeanPrice === 'number' ? fd.targetMeanPrice : null,
+        targetHigh: typeof fd.targetHighPrice === 'number' ? fd.targetHighPrice : null,
+        targetLow: typeof fd.targetLowPrice === 'number' ? fd.targetLowPrice : null,
+        targetMedian: typeof fd.targetMedianPrice === 'number' ? fd.targetMedianPrice : null,
+        numAnalysts: typeof fd.numberOfAnalystOpinions === 'number' ? fd.numberOfAnalystOpinions : null,
+        recommendationKey: typeof fd.recommendationKey === 'string' ? fd.recommendationKey : null,
+        recommendationMean: typeof fd.recommendationMean === 'number' ? fd.recommendationMean : null,
+        trend: current ? {
+          strongBuy: current.strongBuy ?? 0,
+          buy: current.buy ?? 0,
+          hold: current.hold ?? 0,
+          sell: current.sell ?? 0,
+          strongSell: current.strongSell ?? 0,
+        } : null,
+      };
+    } catch (error) {
+      console.error('Analyst ratings error:', error);
+      return null;
     }
   });
 }
