@@ -50,6 +50,14 @@ export interface StockData {
   historical: HistoricalDataPoint[];
   indicators: TechnicalIndicators;
   analysis: AnalysisSummary;
+  earnings: EarningsReport[];
+}
+
+export interface EarningsReport {
+  /** Fiscal-quarter-end date (ISO yyyy-mm-dd). Yahoo's earningsHistory anchors on this, not the announcement date. */
+  date: string;
+  /** Yahoo period code, e.g. "1Q2025". */
+  period: string;
 }
 
 export interface SearchResult {

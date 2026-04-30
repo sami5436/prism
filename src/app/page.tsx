@@ -323,7 +323,10 @@ export default function Home() {
                     historical={stockData.historical}
                     indicators={stockData.indicators}
                   />
-                  <QuarterlyReturnsPanel historical={stockData.historical} />
+                  <QuarterlyReturnsPanel
+                    historical={stockData.historical}
+                    earnings={stockData.earnings ?? []}
+                  />
                 </div>
                 <div className="space-y-6">
                   <AISummaryCard analysis={stockData.analysis} />

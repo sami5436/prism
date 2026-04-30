@@ -5,23 +5,25 @@ import {
   Area, AreaChart, CartesianGrid, ReferenceDot, ReferenceLine, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { HistoricalDataPoint } from '@/types/stock';
+import { HistoricalDataPoint, EarningsReport } from '@/types/stock';
 
 interface Props {
   historical: HistoricalDataPoint[];
+  earnings: EarningsReport[];
 }
 
-interface Quarter {
-  key: string;        // "2025-Q1"
-  label: string;      // "Q1 2025"
+interface Bucket {
+  key: string;        // earnings date that closes the bucket, or "in-progress"
+  label: string;      // "1Q2025" from Yahoo, or "In progress"
   startDate: string;
   endDate: string;
-  open: number;       // first close of the quarter
-  close: number;      // last close of the quarter
+  open: number;
+  close: number;
   high: number;
   low: number;
-  change: number;     // close - open
-  changePct: number;  // (close - open) / open
+  change: number;
+  changePct: number;
+  isInProgress: boolean;
 }
 
 const fmt = (v: number) => `$${v.toFixed(2)}`;
@@ -32,34 +34,45 @@ const fmtMonth = (d: string) => {
   return `${m}/${y.slice(2)}`;
 };
 
-function quarterOf(dateStr: string): { key: string; label: string; q: number; year: number } {
-  const [yStr, mStr] = dateStr.split('-');
-  const year = Number(yStr);
-  const month = Number(mStr);
-  const q = Math.floor((month - 1) / 3) + 1;
-  return { key: `${year}-Q${q}`, label: `Q${q} ${year}`, q, year };
-}
-
-function buildQuarters(historical: HistoricalDataPoint[]): Quarter[] {
+/**
+ * Build buckets of price action keyed to fiscal-quarter-end dates from Yahoo's
+ * earningsHistory. Each bucket spans bars in (prevEarnings, thisEarnings]; trailing
+ * bars after the most recent earnings date form an "in-progress" bucket.
+ *
+ * Note: Yahoo anchors earningsHistory on the fiscal quarter-end (not the announcement
+ * date), so the bucket boundary is the period close — close enough to align tables/markers
+ * to the company's actual reporting cycle (e.g., Apple's fiscal Q1 ends in December).
+ */
+function buildBuckets(historical: HistoricalDataPoint[], earnings: EarningsReport[]): Bucket[] {
   if (!historical.length) return [];
-  const buckets = new Map<string, HistoricalDataPoint[]>();
-  for (const bar of historical) {
-    const { key } = quarterOf(bar.date);
-    const arr = buckets.get(key);
-    if (arr) arr.push(bar);
-    else buckets.set(key, [bar]);
-  }
-  const quarters: Quarter[] = [];
-  for (const [key, bars] of buckets) {
-    bars.sort((a, b) => a.date.localeCompare(b.date));
+  const sortedHist = [...historical].sort((a, b) => a.date.localeCompare(b.date));
+  const sortedEarn = [...earnings]
+    .filter(e => e.date >= sortedHist[0].date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const buckets: Bucket[] = [];
+
+  let cursor = 0; // index into sortedHist
+  let prevEnd: string | null = null;
+
+  const sliceTo = (endDateInclusive: string) => {
+    const start = cursor;
+    while (cursor < sortedHist.length && sortedHist[cursor].date <= endDateInclusive) {
+      cursor++;
+    }
+    return sortedHist.slice(start, cursor);
+  };
+
+  for (const e of sortedEarn) {
+    const bars = sliceTo(e.date);
+    if (!bars.length) continue;
     const first = bars[0];
     const last = bars[bars.length - 1];
     const high = bars.reduce((m, b) => Math.max(m, b.high), -Infinity);
     const low = bars.reduce((m, b) => Math.min(m, b.low), Infinity);
-    const { label } = quarterOf(first.date);
-    quarters.push({
-      key,
-      label,
+    buckets.push({
+      key: e.date,
+      label: e.period || `Q ending ${e.date}`,
       startDate: first.date,
       endDate: last.date,
       open: first.close,
@@ -68,25 +81,66 @@ function buildQuarters(historical: HistoricalDataPoint[]): Quarter[] {
       low,
       change: last.close - first.close,
       changePct: first.close > 0 ? (last.close - first.close) / first.close : 0,
+      isInProgress: false,
+    });
+    prevEnd = e.date;
+  }
+
+  // Trailing bars past the last earnings date form an in-progress bucket.
+  if (cursor < sortedHist.length) {
+    const bars = sortedHist.slice(cursor);
+    const first = bars[0];
+    const last = bars[bars.length - 1];
+    const high = bars.reduce((m, b) => Math.max(m, b.high), -Infinity);
+    const low = bars.reduce((m, b) => Math.min(m, b.low), Infinity);
+    buckets.push({
+      key: 'in-progress',
+      label: 'In progress',
+      startDate: first.date,
+      endDate: last.date,
+      open: first.close,
+      close: last.close,
+      high,
+      low,
+      change: last.close - first.close,
+      changePct: first.close > 0 ? (last.close - first.close) / first.close : 0,
+      isInProgress: true,
     });
   }
-  return quarters.sort((a, b) => a.key.localeCompare(b.key));
+
+  void prevEnd;
+  return buckets;
 }
 
-export default function QuarterlyReturnsPanel({ historical }: Props) {
+export default function QuarterlyReturnsPanel({ historical, earnings }: Props) {
   const chartData = useMemo(
     () => historical.map(b => ({ date: b.date, close: b.close })),
     [historical],
   );
 
-  const quarters = useMemo(() => buildQuarters(historical), [historical]);
+  const buckets = useMemo(() => buildBuckets(historical, earnings), [historical, earnings]);
 
-  // Vertical line + star marker at the first trading day of each quarter
-  // (excluding the very first bar, which already anchors the chart's left edge).
-  const quarterMarkers = useMemo(
-    () => quarters.slice(1).map(q => ({ date: q.startDate, price: q.open })),
-    [quarters],
-  );
+  // Mark each earnings boundary that falls within the visible window. Snap to the
+  // nearest available trading day so the dot lands on the price line.
+  const earningsMarkers = useMemo(() => {
+    if (!historical.length || !earnings.length) return [];
+    const startDate = historical[0].date;
+    const endDate = historical[historical.length - 1].date;
+    const byDate = new Map(historical.map(b => [b.date, b.close]));
+    return earnings
+      .filter(e => e.date >= startDate && e.date <= endDate)
+      .map(e => {
+        if (byDate.has(e.date)) return { date: e.date, price: byDate.get(e.date)!, period: e.period };
+        // Snap to nearest trading day in history.
+        const target = new Date(e.date).getTime();
+        const snapped = historical.reduce((best, b) => {
+          const dBest = Math.abs(new Date(best.date).getTime() - target);
+          const dCurr = Math.abs(new Date(b.date).getTime() - target);
+          return dCurr < dBest ? b : best;
+        }, historical[0]);
+        return { date: snapped.date, price: snapped.close, period: e.period };
+      });
+  }, [historical, earnings]);
 
   if (!historical.length) {
     return (
@@ -96,14 +150,18 @@ export default function QuarterlyReturnsPanel({ historical }: Props) {
     );
   }
 
+  const earningsAvailable = earnings.length > 0;
+
   return (
     <div className="rounded-lg p-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="mb-4">
         <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>
-          Quarterly Returns
+          Returns by Fiscal Quarter
         </h3>
         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          Close price by calendar quarter · dashed lines = quarter start
+          {earningsAvailable
+            ? 'Close price bucketed between consecutive earnings reports · markers = fiscal-quarter-end'
+            : 'Earnings history unavailable for this ticker'}
         </p>
       </div>
 
@@ -138,10 +196,10 @@ export default function QuarterlyReturnsPanel({ historical }: Props) {
                 color: 'var(--text-primary)',
               }}
               labelFormatter={(d) => d as string}
-              formatter={((value: number | undefined) => [fmt(value ?? 0), 'Close']) as any}
+              formatter={(value) => [fmt(typeof value === 'number' ? value : 0), 'Close']}
             />
             <Area type="monotone" dataKey="close" stroke="#3b82f6" strokeWidth={1.5} fill="url(#priceFill)" />
-            {quarterMarkers.map(m => (
+            {earningsMarkers.map(m => (
               <ReferenceLine
                 key={`l-${m.date}`}
                 x={m.date}
@@ -150,13 +208,15 @@ export default function QuarterlyReturnsPanel({ historical }: Props) {
                 strokeOpacity={0.45}
               />
             ))}
-            {quarterMarkers.map(m => (
+            {earningsMarkers.map(m => (
               <ReferenceDot
                 key={`s-${m.date}`}
                 x={m.date}
                 y={m.price}
-                r={7}
-                shape={renderStar}
+                r={5}
+                fill="#f59e0b"
+                stroke="var(--bg-secondary)"
+                strokeWidth={1.5}
                 ifOverflow="extendDomain"
               />
             ))}
@@ -164,16 +224,20 @@ export default function QuarterlyReturnsPanel({ historical }: Props) {
         </ResponsiveContainer>
       </div>
 
-      {quarters.length === 0 ? (
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Not enough history to break into quarters.
+      {!earningsAvailable ? (
+        <p className="text-xs px-2 py-3" style={{ color: 'var(--text-muted)' }}>
+          Yahoo did not return earnings history for this ticker, so we can&apos;t bucket returns by fiscal quarter here.
+        </p>
+      ) : buckets.length === 0 ? (
+        <p className="text-xs px-2 py-3" style={{ color: 'var(--text-muted)' }}>
+          No earnings dates fall within the current price window. Try a longer time range.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
           <table className="w-full text-xs">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <Th align="left">Quarter</Th>
+                <Th align="left">Period</Th>
                 <Th>Start</Th>
                 <Th>End</Th>
                 <Th>High</Th>
@@ -183,21 +247,26 @@ export default function QuarterlyReturnsPanel({ historical }: Props) {
               </tr>
             </thead>
             <tbody>
-              {quarters.slice().reverse().map((q, i, arr) => {
-                const positive = q.change >= 0;
+              {buckets.slice().reverse().map((b, i, arr) => {
+                const positive = b.change >= 0;
                 const color = positive ? '#22c55e' : '#ef4444';
                 return (
                   <tr
-                    key={q.key}
+                    key={b.key}
                     style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-color)' : undefined }}
                   >
-                    <Td align="left" bold>{q.label}</Td>
-                    <Td>{fmt(q.open)}</Td>
-                    <Td>{fmt(q.close)}</Td>
-                    <Td>{fmt(q.high)}</Td>
-                    <Td>{fmt(q.low)}</Td>
-                    <Td color={color}>{fmtSigned(q.change)}</Td>
-                    <Td color={color} bold>{fmtPct(q.changePct)}</Td>
+                    <Td align="left" bold muted={b.isInProgress}>
+                      {b.label}
+                      <span className="ml-2 text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                        {b.startDate} → {b.endDate}
+                      </span>
+                    </Td>
+                    <Td>{fmt(b.open)}</Td>
+                    <Td>{fmt(b.close)}</Td>
+                    <Td>{fmt(b.high)}</Td>
+                    <Td>{fmt(b.low)}</Td>
+                    <Td color={color}>{fmtSigned(b.change)}</Td>
+                    <Td color={color} bold>{fmtPct(b.changePct)}</Td>
                   </tr>
                 );
               })}
@@ -206,28 +275,6 @@ export default function QuarterlyReturnsPanel({ historical }: Props) {
         </div>
       )}
     </div>
-  );
-}
-
-/** 5-point star centered at (cx, cy). recharts passes positioning props. */
-function renderStar(props: any) {
-  const { cx, cy } = props;
-  if (cx == null || cy == null) return <g />;
-  const outer = 6;
-  const inner = outer / 2.5;
-  const points: string[] = [];
-  for (let i = 0; i < 10; i++) {
-    const angle = (Math.PI / 5) * i - Math.PI / 2;
-    const r = i % 2 === 0 ? outer : inner;
-    points.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
-  }
-  return (
-    <polygon
-      points={points.join(' ')}
-      fill="#f59e0b"
-      stroke="var(--bg-secondary)"
-      strokeWidth={1.25}
-    />
   );
 }
 
@@ -247,18 +294,20 @@ function Td({
   align = 'right',
   bold,
   color,
+  muted,
 }: {
   children: React.ReactNode;
   align?: 'left' | 'right';
   bold?: boolean;
   color?: string;
+  muted?: boolean;
 }) {
   return (
     <td
       className="py-1.5 px-3 tabular-nums"
       style={{
         textAlign: align,
-        color: color ?? (bold ? 'var(--text-primary)' : 'var(--text-secondary)'),
+        color: color ?? (muted ? 'var(--text-muted)' : bold ? 'var(--text-primary)' : 'var(--text-secondary)'),
         fontWeight: bold ? 600 : 400,
       }}
     >

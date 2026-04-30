@@ -1,7 +1,7 @@
 // API route for fetching stock data with indicators
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getQuote, getHistoricalData } from '@/lib/yahooFinance';
+import { getQuote, getHistoricalData, getPastEarningsDates } from '@/lib/yahooFinance';
 import { calculateAllIndicators } from '@/lib/indicators';
 import { generateAnalysis } from '@/lib/analysis';
 
@@ -20,10 +20,11 @@ export async function GET(
     }
 
     try {
-        // Fetch quote and historical data in parallel
-        const [quote, historical] = await Promise.all([
+        // Fetch quote, historical data, and past earnings dates in parallel.
+        const [quote, historical, earnings] = await Promise.all([
             getQuote(ticker.toUpperCase()),
             getHistoricalData(ticker.toUpperCase(), period),
+            getPastEarningsDates(ticker.toUpperCase()).catch(() => []),
         ]);
 
         if (!quote) {
@@ -51,6 +52,7 @@ export async function GET(
             historical,
             indicators,
             analysis,
+            earnings,
         });
     } catch (error) {
         console.error('Stock API error:', error);
