@@ -153,6 +153,7 @@ export default function IVRankPanel({ ticker }: Props) {
           </h3>
           <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
             HV (annualized 30d realized) over time · IV sampled from {data.ivExpiration ?? 'nearest'} expiration · ◆ = quarter-end
+            {data.currentIV != null && <> · <span style={{ color: '#a855f7' }}>— —</span> current IV</>}
           </p>
         </div>
         <div className="flex gap-1">
@@ -223,6 +224,20 @@ export default function IVRankPanel({ ticker }: Props) {
               formatter={((value: number | undefined) => [pct(value ?? 0), 'HV']) as any}
             />
             <Area type="monotone" dataKey="hv" stroke="#3b82f6" strokeWidth={1.5} fill="url(#hvFill)" />
+            {data.currentIV != null && (
+              <ReferenceLine
+                y={data.currentIV}
+                stroke="#a855f7"
+                strokeDasharray="4 4"
+                strokeWidth={1.5}
+                label={{
+                  value: `IV ${pct(data.currentIV)}`,
+                  position: 'insideTopRight',
+                  fill: '#a855f7',
+                  fontSize: 10,
+                }}
+              />
+            )}
             {visibleEarnings.map(e => (
               <ReferenceLine
                 key={`l-${e.date}`}

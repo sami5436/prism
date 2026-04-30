@@ -24,7 +24,8 @@
       "Bash(npx eslint *)",
       "Bash(mv /tmp/iv-debug.mjs /Users/samihamdalla/Projects/prism/iv-debug.mjs)",
       "Bash(node iv-debug.mjs)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(git stash *)"
     ]
   }
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, Legend,
+    ResponsiveContainer, Legend, LineChart, Line, ReferenceLine,
 } from 'recharts';
 import { OptionsData, OptionContract } from '@/types/stock';
 
@@ -28,7 +28,7 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>('');
-    const [showDetail, setShowDetail] = useState(false);
+    const [viewMode, setViewMode] = useState<'chart' | 'skew' | 'detail'>('chart');
     const [sortField, setSortField] = useState<keyof StrikeRow>('strike');
     const [sortAsc, setSortAsc] = useState(true);
     const [bandPct, setBandPct] = useState<number>(15); // ±% of spot for chart band
@@ -182,7 +182,7 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                         ))}
                     </select>
 
-                    {!showDetail && (
+                    {viewMode !== 'detail' && (
                         <div className="flex items-center gap-1.5">
                             <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Band ±</span>
                             <input
@@ -203,17 +203,25 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                         </div>
                     )}
 
-                    <button
-                        onClick={() => setShowDetail(!showDetail)}
-                        className="text-xs px-3 py-1.5 rounded-md transition-colors cursor-pointer"
-                        style={{
-                            background: showDetail ? 'var(--text-primary)' : 'var(--bg-tertiary)',
-                            color: showDetail ? 'var(--bg-primary)' : 'var(--text-secondary)',
-                            border: '1px solid var(--border-color)',
-                        }}
-                    >
-                        {showDetail ? 'Chart' : 'Detail'}
-                    </button>
+                    <div className="flex gap-1">
+                        {(['chart', 'skew', 'detail'] as const).map(mode => {
+                            const active = viewMode === mode;
+                            return (
+                                <button
+                                    key={mode}
+                                    onClick={() => setViewMode(mode)}
+                                    className="text-xs px-3 py-1.5 rounded-md transition-colors cursor-pointer capitalize"
+                                    style={{
+                                        background: active ? 'var(--text-primary)' : 'var(--bg-tertiary)',
+                                        color: active ? 'var(--bg-primary)' : 'var(--text-secondary)',
+                                        border: '1px solid var(--border-color)',
+                                    }}
+                                >
+                                    {mode}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
 
@@ -234,7 +242,7 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
             </div>
 
             {/* Chart view */}
-            {!showDetail && (
+            {viewMode === 'chart' && (
                 <div className="p-5">
                     <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
                         OI + Volume by Strike · ±{bandPct}% of spot · solid base = OI, lighter top = Volume
@@ -275,8 +283,101 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                 </div>
             )}
 
+            {/* Skew view */}
+            {viewMode === 'skew' && (
+                <div className="p-5">
+                    <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                        Implied volatility by strike · ±{bandPct}% of spot · vertical line = ATM
+                    </p>
+                    {(() => {
+                        const skewRows = effectiveRows.map(r => ({
+                            strike: r.strike,
+                            callIV: r.callIV > 0 ? r.callIV : null,
+                            putIV: r.putIV > 0 ? r.putIV : null,
+                        }));
+                        const ivValues = skewRows.flatMap(r => [r.callIV, r.putIV]).filter((v): v is number => v != null);
+                        const hasIV = ivValues.length > 0;
+                        const minIV = hasIV ? Math.min(...ivValues) : 0;
+                        const maxIV = hasIV ? Math.max(...ivValues) : 1;
+                        const pad = (maxIV - minIV) * 0.1 || 0.05;
+                        return hasIV ? (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={skewRows} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                                    <XAxis
+                                        dataKey="strike"
+                                        type="number"
+                                        domain={['dataMin', 'dataMax']}
+                                        tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                                        tickFormatter={(v) => `$${v}`}
+                                    />
+                                    <YAxis
+                                        domain={[Math.max(0, minIV - pad), maxIV + pad]}
+                                        tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                                        tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                                        width={40}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            background: 'var(--bg-tertiary)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: 8,
+                                            fontSize: 12,
+                                            color: 'var(--text-primary)',
+                                        }}
+                                        formatter={(value, name) => [
+                                            typeof value === 'number' ? `${(value * 100).toFixed(1)}%` : '—',
+                                            name,
+                                        ]}
+                                        labelFormatter={(v) => `Strike $${v}`}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: 11, color: 'var(--text-muted)' }} />
+                                    {data.underlyingPrice > 0 && (
+                                        <ReferenceLine
+                                            x={data.underlyingPrice}
+                                            stroke="var(--text-muted)"
+                                            strokeDasharray="3 3"
+                                            label={{
+                                                value: `ATM $${data.underlyingPrice.toFixed(2)}`,
+                                                position: 'top',
+                                                fill: 'var(--text-muted)',
+                                                fontSize: 10,
+                                            }}
+                                        />
+                                    )}
+                                    <Line
+                                        type="monotone"
+                                        dataKey="callIV"
+                                        name="Call IV"
+                                        stroke="#22c55e"
+                                        strokeWidth={2}
+                                        dot={{ r: 2.5, fill: '#22c55e' }}
+                                        activeDot={{ r: 4 }}
+                                        connectNulls
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="putIV"
+                                        name="Put IV"
+                                        stroke="#ef4444"
+                                        strokeWidth={2}
+                                        dot={{ r: 2.5, fill: '#ef4444' }}
+                                        activeDot={{ r: 4 }}
+                                        connectNulls
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <p className="text-sm text-center py-12" style={{ color: 'var(--text-muted)' }}>
+                                No IV data in this band.
+                            </p>
+                        );
+                    })()}
+                </div>
+            )}
+
             {/* Detail table view */}
-            {showDetail && (
+            {viewMode === 'detail' && (
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                         <thead>
