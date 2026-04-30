@@ -63,7 +63,8 @@ const METRICS: MetricConfig[] = [
       openHigh: true,
       zones: [
         { from: 0, to: 0.5, tone: 'danger', name: 'Distress' },
-        { from: 0.5, to: 1, tone: 'tight', name: 'Tight' },
+        { from: 0.5, to: 1, tone: 'tight'
+          , name: 'Tight' },
         { from: 1, to: 2, tone: 'healthy', name: 'Healthy' },
         { from: 2, to: 3, tone: 'conservative', name: 'Cash-heavy' },
       ],
