@@ -40,8 +40,12 @@ export default function OptionsPage() {
 
         {ticker ? (
           <div className="space-y-6">
-            <IVRankPanel ticker={ticker} />
-            <OptionsChain ticker={ticker} />
+            <div id="iv-rank-panel" className="scroll-mt-24">
+              <IVRankPanel ticker={ticker} />
+            </div>
+            <div id="chain-panel" className="scroll-mt-24">
+              <OptionsChain ticker={ticker} />
+            </div>
 
             <div
               className="pt-6 mt-2"
@@ -61,8 +65,12 @@ export default function OptionsPage() {
 
               {rangeValid && (
                 <div className="space-y-6">
-                  <PriceLevelsPanel ticker={ticker} minDte={dte.min} maxDte={dte.max} />
-                  <CallPicks ticker={ticker} minDte={dte.min} maxDte={dte.max} />
+                  <div id="oi-levels" className="scroll-mt-24">
+                    <PriceLevelsPanel ticker={ticker} minDte={dte.min} maxDte={dte.max} />
+                  </div>
+                  <div id="buy-candidates" className="scroll-mt-24">
+                    <CallPicks ticker={ticker} minDte={dte.min} maxDte={dte.max} />
+                  </div>
                 </div>
               )}
             </div>

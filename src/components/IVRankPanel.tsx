@@ -5,6 +5,7 @@ import {
   Area, AreaChart, CartesianGrid, ReferenceDot, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface VolPoint { date: string; hv: number }
 interface EarningsMarker { date: string; period: string }
@@ -148,8 +149,9 @@ export default function IVRankPanel({ ticker }: Props) {
     <div className="rounded-xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <h3 className="text-base font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
             Volatility
+            <DocsLink to="iv-rank" label="How IV Rank works" />
           </h3>
           <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
             HV (annualized 30d realized) over time · IV sampled from {data.ivExpiration ?? 'nearest'} expiration · ◆ = quarter-end

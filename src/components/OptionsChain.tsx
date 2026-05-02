@@ -6,6 +6,7 @@ import {
     ResponsiveContainer, Legend, LineChart, Line, ReferenceLine,
 } from 'recharts';
 import { OptionsData, OptionContract } from '@/types/stock';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface OptionsChainProps {
     ticker: string;
@@ -258,7 +259,10 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
             {/* Header */}
             <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" style={{ borderBottom: '1px solid var(--border-color)' }}>
                 <div>
-                    <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Single-Expiration Chain</h3>
+                    <h3 className="text-base font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                        Single-Expiration Chain
+                        <DocsLink to="chain-views" label="How the chain views work" />
+                    </h3>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         OI &amp; Volume by strike for one expiration
                     </p>
@@ -333,8 +337,9 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                 >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <div className="flex items-baseline gap-3 flex-wrap">
-                            <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-[10px] uppercase tracking-wider inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                                 Expected Move
+                                <DocsLink to="expected-move" label="How expected move is calculated" size={10} />
                             </span>
                             <span className="text-base font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                                 ±${expectedMove.dollars.toFixed(2)}
@@ -366,8 +371,9 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                         return (
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <span className="text-[10px] uppercase tracking-wider whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+                                    <span className="text-[10px] uppercase tracking-wider whitespace-nowrap inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                                         OTM Lean
+                                        <DocsLink to="directional-lean" label="How OTM lean is computed" size={10} />
                                     </span>
                                     <div
                                         className="flex-1 max-w-[220px] h-1.5 rounded-full flex overflow-hidden"
@@ -406,10 +412,13 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                     { label: 'Put Vol', value: fmt(totalPutVolume), color: '#ef4444' },
                     { label: 'Call OI', value: fmt(totalCallOI), color: '#22c55e' },
                     { label: 'Put OI', value: fmt(totalPutOI), color: '#ef4444' },
-                    { label: 'P/C Ratio', value: pcRatio, color: 'var(--text-primary)' },
+                    { label: 'P/C Ratio', value: pcRatio, color: 'var(--text-primary)', docTo: 'pc-ratio', docLabel: 'How to read the P/C ratio' },
                 ].map(stat => (
                     <div key={stat.label} className="py-3 px-3 text-center" style={{ background: 'var(--bg-secondary)' }}>
-                        <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
+                        <p className="text-[10px] uppercase tracking-wider mb-1 inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                            {stat.label}
+                            {stat.docTo && <DocsLink to={stat.docTo} label={stat.docLabel!} size={10} />}
+                        </p>
                         <p className="text-sm font-semibold" style={{ color: stat.color }}>{stat.value}</p>
                     </div>
                 ))}
@@ -460,8 +469,9 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
             {/* Skew view */}
             {viewMode === 'skew' && (
                 <div className="p-5">
-                    <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-xs mb-3 inline-flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
                         Implied volatility by strike · ±{bandPct}% of spot · vertical line = ATM
+                        <DocsLink to="iv-skew" label="How to read the volatility skew" size={11} />
                     </p>
                     {(() => {
                         const skewRows = effectiveRows.map(r => ({

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface StrikeLevel {
   strike: number;
@@ -62,8 +63,9 @@ export default function PriceLevelsPanel({ ticker, minDte, maxDte }: Props) {
   return (
     <div className="rounded-xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="mb-4">
-        <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+        <h3 className="text-base font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
           Open Interest by Strike
+          <DocsLink to="open-interest-levels" label="How to read OI clusters" />
         </h3>
         <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
           {data
