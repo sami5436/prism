@@ -200,3 +200,43 @@ export function Term({ children }: { children: ReactNode }) {
     </span>
   );
 }
+
+export function XRef({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <a
+      href={`#${to}`}
+      className="underline decoration-dotted underline-offset-[3px] transition-opacity hover:opacity-80"
+      style={{ color: 'var(--text-primary)', textDecorationColor: 'var(--text-muted)' }}
+    >
+      {children}
+    </a>
+  );
+}
+
+/**
+ * Inline link from a docs subsection back to the matching live panel on
+ * another page (e.g. /options#chain-panel). Sits at the top of a subsection
+ * as an unobtrusive "See it live" affordance — matching arrow direction
+ * tells the reader they're leaving the docs.
+ */
+export function LivePanelLink({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider transition-opacity hover:opacity-100 mb-2"
+      style={{ color: 'var(--text-muted)', opacity: 0.85 }}
+    >
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l6-6" />
+        <path d="M4.5 3H9v4.5" />
+      </svg>
+      See it live · {label}
+    </a>
+  );
+}
