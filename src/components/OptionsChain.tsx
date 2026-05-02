@@ -23,6 +23,103 @@ interface StrikeRow {
     putITM: boolean;
 }
 
+interface ExpectedMove {
+    dollars: number;   // ATM straddle ≈ 1σ implied move
+    pct: number;       // dollars / spot × 100
+    strike: number;    // ATM strike used
+    upper: number;     // spot + dollars
+    lower: number;     // spot − dollars
+}
+
+// Market-implied 1σ move for the selected expiration, derived from the ATM
+// straddle. Uses bid/ask mid when both sides are quoted; falls back to last.
+function computeExpectedMove(
+    calls: OptionContract[],
+    puts: OptionContract[],
+    spot: number,
+): ExpectedMove | null {
+    if (!spot || !calls.length || !puts.length) return null;
+
+    const putStrikes = new Set(puts.map(p => p.strike));
+    const common = calls.map(c => c.strike).filter(s => putStrikes.has(s));
+    if (!common.length) return null;
+
+    const atmStrike = common.reduce((best, s) =>
+        Math.abs(s - spot) < Math.abs(best - spot) ? s : best,
+    );
+
+    const atmCall = calls.find(c => c.strike === atmStrike);
+    const atmPut = puts.find(p => p.strike === atmStrike);
+    if (!atmCall || !atmPut) return null;
+
+    const mid = (c: OptionContract) =>
+        c.bid > 0 && c.ask > 0 ? (c.bid + c.ask) / 2 : c.lastPrice;
+
+    const callMid = mid(atmCall);
+    const putMid = mid(atmPut);
+    if (callMid <= 0 || putMid <= 0) return null;
+
+    const dollars = callMid + putMid;
+    return {
+        dollars,
+        pct: (dollars / spot) * 100,
+        strike: atmStrike,
+        upper: spot + dollars,
+        lower: spot - dollars,
+    };
+}
+
+interface DirectionalLean {
+    callStrike: number;
+    putStrike: number;
+    callPremium: number;
+    putPremium: number;
+    callShare: number;  // callPremium / (call+put) × 100, neutral = 50
+    skewPct: number;    // (call - put) / (call + put) × 100; >0 upside, <0 downside
+}
+
+// OTM premium comparison at roughly equidistant strikes (~5% from spot).
+// Equidistant OTM cancels the put-call parity carry tilt, leaving the
+// market's directional pricing skew.
+function computeDirectionalLean(
+    calls: OptionContract[],
+    puts: OptionContract[],
+    spot: number,
+): DirectionalLean | null {
+    if (!spot || !calls.length || !puts.length) return null;
+
+    const otmCalls = calls.filter(c => c.strike > spot);
+    const otmPuts = puts.filter(p => p.strike < spot);
+    if (!otmCalls.length || !otmPuts.length) return null;
+
+    const callTarget = spot * 1.05;
+    const putTarget = spot * 0.95;
+
+    const otmCall = otmCalls.reduce((best, c) =>
+        Math.abs(c.strike - callTarget) < Math.abs(best.strike - callTarget) ? c : best,
+    );
+    const otmPut = otmPuts.reduce((best, p) =>
+        Math.abs(p.strike - putTarget) < Math.abs(best.strike - putTarget) ? p : best,
+    );
+
+    const mid = (c: OptionContract) =>
+        c.bid > 0 && c.ask > 0 ? (c.bid + c.ask) / 2 : c.lastPrice;
+
+    const callPremium = mid(otmCall);
+    const putPremium = mid(otmPut);
+    if (callPremium <= 0 || putPremium <= 0) return null;
+
+    const total = callPremium + putPremium;
+    return {
+        callStrike: otmCall.strike,
+        putStrike: otmPut.strike,
+        callPremium,
+        putPremium,
+        callShare: (callPremium / total) * 100,
+        skewPct: ((callPremium - putPremium) / total) * 100,
+    };
+}
+
 export default function OptionsChain({ ticker }: OptionsChainProps) {
     const [data, setData] = useState<OptionsData | null>(null);
     const [loading, setLoading] = useState(false);
@@ -100,6 +197,9 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
     const totalCallOI = data.calls.reduce((s, c) => s + c.openInterest, 0);
     const totalPutOI = data.puts.reduce((s, c) => s + c.openInterest, 0);
     const pcRatio = totalCallVolume > 0 ? (totalPutVolume / totalCallVolume).toFixed(2) : 'N/A';
+
+    const expectedMove = computeExpectedMove(data.calls, data.puts, data.underlyingPrice);
+    const lean = computeDirectionalLean(data.calls, data.puts, data.underlyingPrice);
 
     // Build chart data — aggregate by strike
     const strikeMap = new Map<number, StrikeRow>();
@@ -224,6 +324,80 @@ export default function OptionsChain({ ticker }: OptionsChainProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Expected move + directional lean from selected-expiration options */}
+            {expectedMove && (
+                <div
+                    className="px-5 py-3 flex flex-col gap-2.5"
+                    style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}
+                >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex items-baseline gap-3 flex-wrap">
+                            <span className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                                Expected Move
+                            </span>
+                            <span className="text-base font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                                ±${expectedMove.dollars.toFixed(2)}
+                            </span>
+                            <span className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                                ±{expectedMove.pct.toFixed(2)}%
+                            </span>
+                        </div>
+                        <div className="flex items-baseline gap-2 text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                            <span>Range</span>
+                            <span style={{ color: '#ef4444' }}>${expectedMove.lower.toFixed(2)}</span>
+                            <span>–</span>
+                            <span style={{ color: '#22c55e' }}>${expectedMove.upper.toFixed(2)}</span>
+                            <span className="ml-2 opacity-70">via ${expectedMove.strike.toFixed(2)} straddle</span>
+                        </div>
+                    </div>
+
+                    {lean && (() => {
+                        const dominant: 'upside' | 'downside' | 'balanced' =
+                            lean.skewPct >= 5 ? 'upside' : lean.skewPct <= -5 ? 'downside' : 'balanced';
+                        const dominantLabel =
+                            dominant === 'upside' ? 'Upside favored'
+                            : dominant === 'downside' ? 'Downside favored'
+                            : 'Balanced';
+                        const dominantColor =
+                            dominant === 'upside' ? '#22c55e'
+                            : dominant === 'downside' ? '#ef4444'
+                            : 'var(--text-secondary)';
+                        return (
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <span className="text-[10px] uppercase tracking-wider whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+                                        OTM Lean
+                                    </span>
+                                    <div
+                                        className="flex-1 max-w-[220px] h-1.5 rounded-full flex overflow-hidden"
+                                        style={{ background: 'var(--bg-tertiary)' }}
+                                        title={`${lean.callShare.toFixed(1)}% calls / ${(100 - lean.callShare).toFixed(1)}% puts`}
+                                    >
+                                        <div style={{ width: `${lean.callShare}%`, background: '#22c55e' }} />
+                                        <div style={{ width: `${100 - lean.callShare}%`, background: '#ef4444' }} />
+                                    </div>
+                                    <span className="text-xs font-medium whitespace-nowrap" style={{ color: dominantColor }}>
+                                        {dominantLabel}
+                                        {dominant !== 'balanced' && (
+                                            <span className="ml-1 tabular-nums opacity-80">
+                                                {Math.abs(lean.skewPct).toFixed(0)}%
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-2 text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                    <span style={{ color: '#22c55e' }}>${lean.callPremium.toFixed(2)}</span>
+                                    <span>${lean.callStrike.toFixed(2)}c</span>
+                                    <span className="opacity-50">vs</span>
+                                    <span style={{ color: '#ef4444' }}>${lean.putPremium.toFixed(2)}</span>
+                                    <span>${lean.putStrike.toFixed(2)}p</span>
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
 
             {/* Stats bar */}
             <div className="grid grid-cols-5 gap-px" style={{ background: 'var(--border-color)' }}>
