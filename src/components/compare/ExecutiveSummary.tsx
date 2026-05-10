@@ -1,6 +1,6 @@
 'use client';
 
-import type { AssetResult } from './types';
+import { type AssetResult, pointsFor } from './types';
 import { trailingCAGR, annualizedVolatility, maxDrawdownInWindow, CRISIS_WINDOWS } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
 
@@ -20,14 +20,14 @@ export default function ExecutiveSummary({ assets, benchmarkSymbol, benchmarkLab
   const benchmark = benchmarkSymbol ? assets.find(a => a.symbol === benchmarkSymbol) : null;
   const isSingle = userPicks.length === 1;
 
-  // Compute headline numbers per asset.
+  // Compute headline numbers per asset using total-return series (incl. divs).
   const rows = userPicks.map((a, i) => {
-    const hist = a.historical ?? [];
-    const cagr10 = trailingCAGR(hist, 10);
-    const cagr5 = trailingCAGR(hist, 5);
-    const vol = annualizedVolatility(hist);
+    const total = pointsFor(a, 'total');
+    const cagr10 = trailingCAGR(total, 10);
+    const cagr5 = trailingCAGR(total, 5);
+    const vol = annualizedVolatility(total);
     const worstDd = CRISIS_WINDOWS
-      .map(w => maxDrawdownInWindow(hist, w.start, w.end))
+      .map(w => maxDrawdownInWindow(total, w.start, w.end))
       .filter((x): x is { drawdown: number; peakDate: string; troughDate: string } => x !== null)
       .reduce<number>((min, d) => (d.drawdown < min ? d.drawdown : min), 0);
     return { asset: a, color: colorFor(i), cagr10, cagr5, vol, worstDd };
@@ -37,8 +37,8 @@ export default function ExecutiveSummary({ assets, benchmarkSymbol, benchmarkLab
   let comparisonLine = '';
   if (isSingle) {
     const me = rows[0];
-    const benchHist = benchmark?.historical ?? [];
-    const benchCagr10 = trailingCAGR(benchHist, 10);
+    const benchTotal = benchmark ? pointsFor(benchmark, 'total') : [];
+    const benchCagr10 = trailingCAGR(benchTotal, 10);
     if (me.cagr10 !== null && benchCagr10 !== null) {
       const diff = (me.cagr10 - benchCagr10) * 100;
       const direction = diff >= 0 ? 'beat' : 'trailed';
@@ -104,16 +104,21 @@ export default function ExecutiveSummary({ assets, benchmarkSymbol, benchmarkLab
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Benchmark</span>
             </div>
             <div className="space-y-1 text-xs">
-              <Stat label="10y CAGR" value={fmtPct(trailingCAGR(benchmark.historical ?? [], 10))} />
-              <Stat label="5y CAGR"  value={fmtPct(trailingCAGR(benchmark.historical ?? [], 5))} />
-              <Stat label="Volatility" value={fmtPct(annualizedVolatility(benchmark.historical ?? []))} />
-              <Stat label="Worst crisis" value={(() => {
-                const w = CRISIS_WINDOWS
-                  .map(c => maxDrawdownInWindow(benchmark.historical ?? [], c.start, c.end))
+              {(() => {
+                const benchTotal = pointsFor(benchmark, 'total');
+                const worst = CRISIS_WINDOWS
+                  .map(c => maxDrawdownInWindow(benchTotal, c.start, c.end))
                   .filter((x): x is { drawdown: number; peakDate: string; troughDate: string } => x !== null)
                   .reduce<number>((min, d) => (d.drawdown < min ? d.drawdown : min), 0);
-                return w === 0 ? '—' : fmtPct(w);
-              })()} />
+                return (
+                  <>
+                    <Stat label="10y CAGR" value={fmtPct(trailingCAGR(benchTotal, 10))} />
+                    <Stat label="5y CAGR"  value={fmtPct(trailingCAGR(benchTotal, 5))} />
+                    <Stat label="Volatility" value={fmtPct(annualizedVolatility(benchTotal))} />
+                    <Stat label="Worst crisis" value={worst === 0 ? '—' : fmtPct(worst)} />
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}

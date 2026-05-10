@@ -156,19 +156,26 @@ export async function getLongHistoricalData(
         period1: startDate,
         period2: endDate,
         interval: '1wk',
+        events: 'div|split',
       });
 
       const quotes = historical?.quotes || [];
       return quotes
         .filter((q: any) => q?.close !== null && q?.close !== undefined)
-        .map((q: any) => ({
-          date: new Date(q.date).toISOString().split('T')[0],
-          open: q.open || 0,
-          high: q.high || 0,
-          low: q.low || 0,
-          close: q.close,
-          volume: q.volume || 0,
-        }));
+        .map((q: any) => {
+          const adj = typeof q.adjclose === 'number' ? q.adjclose
+            : typeof q.adjClose === 'number' ? q.adjClose
+            : undefined;
+          return {
+            date: new Date(q.date).toISOString().split('T')[0],
+            open: q.open || 0,
+            high: q.high || 0,
+            low: q.low || 0,
+            close: q.close,
+            adjClose: adj,
+            volume: q.volume || 0,
+          };
+        });
     } catch (error) {
       console.error('Long historical error:', error);
       return [];

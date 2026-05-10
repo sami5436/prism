@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AssetResult } from './types';
+import { type AssetResult, pointsFor } from './types';
 import { trailingCAGR } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
 import SortHeader, { compareValues, type SortDir } from './SortHeader';
@@ -32,14 +32,18 @@ export default function ReturnsTable({ assets, benchmarkSymbol, benchmarkLabel }
     ...(benchmark ? [{ asset: benchmark, color: BENCHMARK_COLOR, isBench: true, label: `${benchmark.symbol} (${benchmarkLabel})` }] : []),
   ], [userPicks, benchmark, benchmarkLabel]);
 
-  // Precompute CAGRs once per render.
-  const enriched = useMemo(() => baseRows.map(r => ({
-    ...r,
-    cagrs: PERIODS.reduce<Record<number, number | null>>((acc, p) => {
-      acc[p] = trailingCAGR(r.asset.historical ?? [], p);
-      return acc;
-    }, {}),
-  })), [baseRows]);
+  // Precompute CAGRs once per render. Uses the total-return series (price +
+  // reinvested dividends) so SCHD-style dividend-heavy funds aren't understated.
+  const enriched = useMemo(() => baseRows.map(r => {
+    const totalSeries = pointsFor(r.asset, 'total');
+    return {
+      ...r,
+      cagrs: PERIODS.reduce<Record<number, number | null>>((acc, p) => {
+        acc[p] = trailingCAGR(totalSeries, p);
+        return acc;
+      }, {}),
+    };
+  }), [baseRows]);
 
   const sortedRows = useMemo(() => {
     if (!sortKey) return enriched;
@@ -64,9 +68,9 @@ export default function ReturnsTable({ assets, benchmarkSymbol, benchmarkLabel }
   return (
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="mb-4">
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Annualized return (CAGR)</h2>
+        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Total return (CAGR)</h2>
         <p className="text-xs mt-1 max-w-2xl" style={{ color: 'var(--text-muted)' }}>
-          <span style={{ color: 'var(--text-secondary)' }}>CAGR (Compound Annual Growth Rate)</span> is the steady yearly rate that turns the starting price into the ending price over the period. A 10y CAGR of 12% means the fund grew <em>as if</em> it returned 12% every year, even though the real year-to-year ride was bumpier.
+          <span style={{ color: 'var(--text-secondary)' }}>CAGR</span> is the steady yearly rate that turns your starting value into your ending value. These numbers include <span style={{ color: 'var(--text-secondary)' }}>reinvested dividends</span>, so dividend-heavy funds (e.g. SCHD) aren&apos;t understated. The Income breakdown panel below splits each fund&apos;s CAGR into price vs. dividends.
         </p>
       </div>
       <div className="overflow-x-auto -mx-6 px-6">

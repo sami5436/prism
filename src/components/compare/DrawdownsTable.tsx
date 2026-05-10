@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AssetResult } from './types';
+import { type AssetResult, pointsFor } from './types';
 import { CRISIS_WINDOWS, maxDrawdownInWindow } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
 import SortHeader, { compareValues, type SortDir } from './SortHeader';
@@ -38,12 +38,15 @@ export default function DrawdownsTable({ assets, benchmarkSymbol, benchmarkLabel
   ], [userPicks, benchmark]);
 
   // Precompute drawdowns per (window, column) so sorting doesn't recalc.
+  // Total-return basis (reinvested dividends) keeps drawdowns consistent
+  // with the rest of the page.
   const drawdowns = useMemo(() => {
     const out: Record<string, Record<string, number | null>> = {};
     for (const w of CRISIS_WINDOWS) {
       out[w.id] = {};
       for (const c of cols) {
-        const r = maxDrawdownInWindow(c.asset.historical ?? [], w.start, w.end);
+        const series = pointsFor(c.asset, 'total');
+        const r = maxDrawdownInWindow(series, w.start, w.end);
         out[w.id][c.asset.symbol] = r?.drawdown ?? null;
       }
     }

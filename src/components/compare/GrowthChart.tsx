@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import type { AssetResult } from './types';
+import { type AssetResult, pointsFor } from './types';
 import { alignedGrowthSeries } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
 
@@ -34,10 +34,12 @@ export default function GrowthChart({
     const userPicks = assets.filter(a => a.symbol !== benchmarkSymbol && (a.historical?.length ?? 0) > 0);
     const benchmark = benchmarkSymbol ? assets.find(a => a.symbol === benchmarkSymbol) : null;
 
+    // Total-return series: dividends reinvested. Otherwise SCHD-style funds
+    // look artificially flat compared to growth funds in this chart.
     const allSeries = [
-      ...userPicks.map(a => ({ id: a.symbol, points: (a.historical ?? []).map(h => ({ date: h.date, close: h.close })) })),
+      ...userPicks.map(a => ({ id: a.symbol, points: pointsFor(a, 'total') })),
       ...(benchmark && (benchmark.historical?.length ?? 0) > 0
-        ? [{ id: benchmark.symbol, points: (benchmark.historical ?? []).map(h => ({ date: h.date, close: h.close })) }]
+        ? [{ id: benchmark.symbol, points: pointsFor(benchmark, 'total') }]
         : []),
     ];
 
@@ -79,7 +81,7 @@ export default function GrowthChart({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>${initialValue.toLocaleString()} invested</h2>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Growth of an initial lump sum, dividends excluded.</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total return — dividends reinvested.</p>
         </div>
         <div className="flex gap-1">
           {RANGES.map(r => (

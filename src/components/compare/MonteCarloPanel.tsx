@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AssetResult } from './types';
+import { type AssetResult, pointsFor } from './types';
 import { monteCarloCone } from '@/lib/compareMath';
 import { colorFor } from './colors';
 import SortHeader, { compareValues, type SortDir } from './SortHeader';
@@ -27,10 +27,11 @@ export default function MonteCarloPanel({ assets, benchmarkSymbol, initialValue 
 
   const projections = useMemo(() => {
     return userPicks.map((a, i) => {
-      const hist = (a.historical ?? []).map(h => ({ date: h.date, close: h.close }));
+      // Sample from total returns so dividend-paying funds project correctly.
+      const total = pointsFor(a, 'total');
       const byHorizon = HORIZONS.map(years => ({
         years,
-        cone: monteCarloCone(hist, initialValue, years, { paths: 1500, lookbackYears: 10, samplesOut: 4 }),
+        cone: monteCarloCone(total, initialValue, years, { paths: 1500, lookbackYears: 10, samplesOut: 4 }),
       }));
       return { asset: a, color: colorFor(i), byHorizon };
     });

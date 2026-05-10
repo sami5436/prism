@@ -22,6 +22,9 @@ export interface HistoricalDataPoint {
   high: number;
   low: number;
   close: number;
+  /** Dividend-and-split-adjusted close (= total return series).
+   * Optional because short `chart` calls don't always populate it; long-history fetches do. */
+  adjClose?: number;
   volume: number;
 }
 
