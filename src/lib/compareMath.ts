@@ -39,11 +39,18 @@ export const CRISIS_WINDOWS: CrisisWindow[] = [
     blurb: 'Inflation and rate-hike-driven decline through 2022.',
   },
   {
-    id: 'tariff-iran-2025',
-    label: '2025 Tariff & Iran Volatility',
-    start: '2025-04-01',
-    end: '2025-06-30',
-    blurb: 'April tariff selloff and June Iran-related volatility.',
+    id: 'tariff-2025',
+    label: '2025 Tariff Selloff',
+    start: '2025-02-14',
+    end: '2025-04-04',
+    blurb: 'Feb 14 high into the Apr 4, 2025 tariff-driven low.',
+  },
+  {
+    id: 'iran-2026',
+    label: '2026 Iran Volatility',
+    start: '2026-01-01',
+    end: '2026-03-30',
+    blurb: 'Move from Jan 2026 into the Mar 30, 2026 low (~SPY 630) tied to Iran-related volatility.',
   },
 ];
 
