@@ -183,6 +183,20 @@ export async function getLongHistoricalData(
   });
 }
 
+export interface FundHolding {
+  /** Underlying ticker if Yahoo exposes one, else null (e.g. for indices). */
+  symbol: string | null;
+  name: string;
+  /** Decimal weight, e.g. 0.067 = 6.7% of fund. */
+  percent: number;
+}
+
+export interface SectorWeight {
+  /** Yahoo's snake_case key — e.g. "consumer_cyclical". UI formats for display. */
+  sector: string;
+  percent: number;
+}
+
 export interface FundProfile {
   symbol: string;
   longName: string | null;
@@ -199,6 +213,10 @@ export interface FundProfile {
   threeYrAvgReturn: number | null;
   fiveYrAvgReturn: number | null;
   beta: number | null;
+  /** Top holdings with weights. Empty for indices and individual stocks. */
+  holdings: FundHolding[];
+  /** Sector weight breakdown. Empty for non-fund assets. */
+  sectorWeightings: SectorWeight[];
 }
 
 /**
@@ -259,6 +277,32 @@ export async function getFundProfile(symbol: string): Promise<FundProfile | null
             ? dks.fundInceptionDate
             : null;
 
+      // Holdings: Yahoo ships an array of { symbol, holdingName, holdingPercent }.
+      const holdingsRaw: any[] = Array.isArray(th?.holdings) ? th.holdings : [];
+      const holdings: FundHolding[] = holdingsRaw
+        .map((h: any) => {
+          const pct = num(h?.holdingPercent) ?? 0;
+          return {
+            symbol: typeof h?.symbol === 'string' && h.symbol.length > 0 ? h.symbol : null,
+            name: typeof h?.holdingName === 'string' ? h.holdingName : (typeof h?.symbol === 'string' ? h.symbol : ''),
+            percent: pct,
+          };
+        })
+        .filter(h => h.name.length > 0 && h.percent > 0)
+        .sort((a, b) => b.percent - a.percent);
+
+      // Sector weightings: array of single-key objects, e.g. [{ realestate: 0.012 }, ...].
+      const sectorRaw: any[] = Array.isArray(th?.sectorWeightings) ? th.sectorWeightings : [];
+      const sectorWeightings: SectorWeight[] = [];
+      for (const obj of sectorRaw) {
+        if (!obj || typeof obj !== 'object') continue;
+        for (const [k, v] of Object.entries(obj)) {
+          const pct = num(v);
+          if (pct !== null && pct > 0) sectorWeightings.push({ sector: k, percent: pct });
+        }
+      }
+      sectorWeightings.sort((a, b) => b.percent - a.percent);
+
       return {
         symbol: symbol.toUpperCase(),
         longName: str(price?.longName) ?? str(price?.shortName),
@@ -275,6 +319,8 @@ export async function getFundProfile(symbol: string): Promise<FundProfile | null
         threeYrAvgReturn: num(dks?.threeYearAverageReturn),
         fiveYrAvgReturn: num(dks?.fiveYearAverageReturn),
         beta: num(sd?.beta) ?? num(dks?.beta3Year),
+        holdings,
+        sectorWeightings,
       };
     } catch (error) {
       console.error('Fund profile error:', error);
