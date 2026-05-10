@@ -1,8 +1,10 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import type { AssetResult } from './types';
 import { trailingCAGR } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
+import SortHeader, { compareValues, type SortDir } from './SortHeader';
 
 interface Props {
   assets: AssetResult[];
@@ -11,6 +13,7 @@ interface Props {
 }
 
 const PERIODS = [1, 3, 5, 10, 15] as const;
+type SortKey = 'symbol' | (typeof PERIODS)[number];
 
 function fmtPct(n: number | null, digits = 1): string {
   if (n === null || !Number.isFinite(n)) return '—';
@@ -18,13 +21,45 @@ function fmtPct(n: number | null, digits = 1): string {
 }
 
 export default function ReturnsTable({ assets, benchmarkSymbol, benchmarkLabel }: Props) {
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
   const userPicks = assets.filter(a => a.symbol !== benchmarkSymbol);
   const benchmark = benchmarkSymbol ? assets.find(a => a.symbol === benchmarkSymbol) : null;
 
-  const rows = [
+  const baseRows = useMemo(() => [
     ...userPicks.map((a, i) => ({ asset: a, color: colorFor(i), isBench: false, label: a.symbol })),
     ...(benchmark ? [{ asset: benchmark, color: BENCHMARK_COLOR, isBench: true, label: `${benchmark.symbol} (${benchmarkLabel})` }] : []),
-  ];
+  ], [userPicks, benchmark, benchmarkLabel]);
+
+  // Precompute CAGRs once per render.
+  const enriched = useMemo(() => baseRows.map(r => ({
+    ...r,
+    cagrs: PERIODS.reduce<Record<number, number | null>>((acc, p) => {
+      acc[p] = trailingCAGR(r.asset.historical ?? [], p);
+      return acc;
+    }, {}),
+  })), [baseRows]);
+
+  const sortedRows = useMemo(() => {
+    if (!sortKey) return enriched;
+    const arr = [...enriched];
+    arr.sort((a, b) => {
+      if (sortKey === 'symbol') return compareValues(a.asset.symbol, b.asset.symbol, sortDir);
+      return compareValues(a.cagrs[sortKey], b.cagrs[sortKey], sortDir);
+    });
+    return arr;
+  }, [enriched, sortKey, sortDir]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      // Numeric columns default to desc (highest first); alpha defaults to asc.
+      setSortDir(key === 'symbol' ? 'asc' : 'desc');
+    }
+  };
 
   return (
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
@@ -38,14 +73,32 @@ export default function ReturnsTable({ assets, benchmarkSymbol, benchmarkLabel }
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              <th className="text-left py-2 pr-4 font-normal">Asset</th>
+              <th className="text-left py-2 pr-4 font-normal">
+                <SortHeader
+                  active={sortKey === 'symbol'}
+                  direction={sortDir}
+                  onClick={() => handleSort('symbol')}
+                  align="left"
+                >
+                  Asset
+                </SortHeader>
+              </th>
               {PERIODS.map(p => (
-                <th key={p} className="text-right py-2 px-3 font-normal whitespace-nowrap">{p}y</th>
+                <th key={p} className="text-right py-2 px-3 font-normal whitespace-nowrap">
+                  <SortHeader
+                    active={sortKey === p}
+                    direction={sortDir}
+                    onClick={() => handleSort(p)}
+                    align="right"
+                  >
+                    {p}y
+                  </SortHeader>
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map(r => (
+            {sortedRows.map(r => (
               <tr key={r.asset.symbol} style={{ borderTop: '1px solid var(--border-color)' }}>
                 <td className="py-3 pr-4">
                   <div className="flex items-center gap-2">
@@ -59,7 +112,7 @@ export default function ReturnsTable({ assets, benchmarkSymbol, benchmarkLabel }
                   </div>
                 </td>
                 {PERIODS.map(p => {
-                  const v = trailingCAGR(r.asset.historical ?? [], p);
+                  const v = r.cagrs[p];
                   const positive = v !== null && v > 0;
                   return (
                     <td key={p} className="text-right py-3 px-3 tabular-nums whitespace-nowrap" style={{ color: v === null ? 'var(--text-muted)' : positive ? 'var(--bs-positive)' : 'var(--bs-critical)' }}>

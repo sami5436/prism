@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { AssetResult } from './types';
 import { monteCarloCone } from '@/lib/compareMath';
 import { colorFor } from './colors';
+import SortHeader, { compareValues, type SortDir } from './SortHeader';
 
 interface Props {
   assets: AssetResult[];
@@ -12,6 +13,7 @@ interface Props {
 }
 
 const HORIZONS = [5, 10, 15] as const;
+type SortKey = 'years' | 'p10' | 'median' | 'p90';
 
 function fmt(n: number | undefined | null): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return '—';
@@ -34,9 +36,33 @@ export default function MonteCarloPanel({ assets, benchmarkSymbol, initialValue 
     });
   }, [userPicks, initialValue]);
 
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'years' ? 'asc' : 'desc');
+    }
+  };
+
   if (projections.length === 0) return null;
 
   const active = projections.find(p => p.asset.symbol === activeSymbol) ?? projections[0];
+
+  const sortedHorizons = (() => {
+    if (!sortKey) return active.byHorizon;
+    const arr = [...active.byHorizon];
+    arr.sort((a, b) => {
+      if (sortKey === 'years') return compareValues(a.years, b.years, sortDir);
+      const av = sortKey === 'p10' ? a.cone?.finalP10 : sortKey === 'median' ? a.cone?.finalMedian : a.cone?.finalP90;
+      const bv = sortKey === 'p10' ? b.cone?.finalP10 : sortKey === 'median' ? b.cone?.finalMedian : b.cone?.finalP90;
+      return compareValues(av ?? null, bv ?? null, sortDir);
+    });
+    return arr;
+  })();
 
   return (
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
@@ -73,14 +99,22 @@ export default function MonteCarloPanel({ assets, benchmarkSymbol, initialValue 
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              <th className="text-left py-2 pr-4 font-normal">Horizon</th>
-              <th className="text-right py-2 px-3 font-normal whitespace-nowrap">Pessimistic (p10)</th>
-              <th className="text-right py-2 px-3 font-normal whitespace-nowrap">Median</th>
-              <th className="text-right py-2 px-3 font-normal whitespace-nowrap">Optimistic (p90)</th>
+              <th className="text-left py-2 pr-4 font-normal">
+                <SortHeader active={sortKey === 'years'} direction={sortDir} onClick={() => handleSort('years')} align="left">Horizon</SortHeader>
+              </th>
+              <th className="text-right py-2 px-3 font-normal whitespace-nowrap">
+                <SortHeader active={sortKey === 'p10'} direction={sortDir} onClick={() => handleSort('p10')} align="right">Pessimistic (p10)</SortHeader>
+              </th>
+              <th className="text-right py-2 px-3 font-normal whitespace-nowrap">
+                <SortHeader active={sortKey === 'median'} direction={sortDir} onClick={() => handleSort('median')} align="right">Median</SortHeader>
+              </th>
+              <th className="text-right py-2 px-3 font-normal whitespace-nowrap">
+                <SortHeader active={sortKey === 'p90'} direction={sortDir} onClick={() => handleSort('p90')} align="right">Optimistic (p90)</SortHeader>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {active.byHorizon.map(h => {
+            {sortedHorizons.map(h => {
               const c = h.cone;
               return (
                 <tr key={h.years} style={{ borderTop: '1px solid var(--border-color)' }}>
