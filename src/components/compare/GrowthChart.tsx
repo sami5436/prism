@@ -7,6 +7,7 @@ import {
 import { type AssetResult, pointsFor } from './types';
 import { alignedGrowthSeries } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface Props {
   assets: AssetResult[];
@@ -80,7 +81,10 @@ export default function GrowthChart({
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>${initialValue.toLocaleString()} invested</h2>
+          <h2 className="text-lg font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+            ${initialValue.toLocaleString()} invested
+            <DocsLink to="compare-growth" label="How the growth chart works" />
+          </h2>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Total return — dividends reinvested.</p>
         </div>
         <div className="flex gap-1">

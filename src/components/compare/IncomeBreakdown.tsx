@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { type AssetResult, pointsFor } from './types';
 import { trailingCAGR } from '@/lib/compareMath';
 import { colorFor } from './colors';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface Props {
   assets: AssetResult[];
@@ -47,8 +48,9 @@ export default function IncomeBreakdown({ assets, benchmarkSymbol, years = 10 }:
   return (
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="mb-5 max-w-2xl">
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+        <h2 className="text-lg font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
           Income breakdown — where the {years}y CAGR came from
+          <DocsLink to="compare-income" label="How price/dividend split is computed" />
         </h2>
         <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
           Splits each fund&apos;s total return into <span style={{ color: 'var(--text-secondary)' }}>price appreciation</span> (capital gains) and <span style={{ color: 'var(--bs-positive)' }}>reinvested dividends</span>. Useful for income-tilted funds (SCHD, VYM) where a meaningful share of the return shows up as cash payouts, not chart-ticks.

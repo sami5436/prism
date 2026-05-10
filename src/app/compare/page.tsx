@@ -126,7 +126,11 @@ export default function ComparePage() {
             Stack ETFs, mutual funds, and indices side by side. Long-term returns, drawdowns through real crises, and projection cones.
           </p>
 
-          <div className="rounded-2xl p-5 sm:p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+          <div
+            id="picker-panel"
+            className="rounded-2xl p-5 sm:p-6 scroll-mt-24"
+            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+          >
             <AssetPicker
               selected={selected}
               onAdd={handleAdd}
@@ -168,55 +172,71 @@ export default function ComparePage() {
               </div>
             )}
 
-            <ExecutiveSummary
-              assets={validAssets}
-              benchmarkSymbol={data.benchmarkSymbol}
-              benchmarkLabel={data.benchmarkLabel}
-            />
-
-            <GrowthChart
-              assets={validAssets}
-              benchmarkSymbol={data.benchmarkSymbol}
-              benchmarkLabel={data.benchmarkLabel}
-              initialValue={10_000}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ReturnsTable
+            <div id="summary-panel" className="scroll-mt-24">
+              <ExecutiveSummary
                 assets={validAssets}
                 benchmarkSymbol={data.benchmarkSymbol}
                 benchmarkLabel={data.benchmarkLabel}
               />
-              <MonteCarloPanel
+            </div>
+
+            <div id="growth-panel" className="scroll-mt-24">
+              <GrowthChart
                 assets={validAssets}
                 benchmarkSymbol={data.benchmarkSymbol}
+                benchmarkLabel={data.benchmarkLabel}
                 initialValue={10_000}
               />
             </div>
 
-            <IncomeBreakdown
-              assets={validAssets}
-              benchmarkSymbol={data.benchmarkSymbol}
-              years={10}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div id="returns-panel" className="scroll-mt-24">
+                <ReturnsTable
+                  assets={validAssets}
+                  benchmarkSymbol={data.benchmarkSymbol}
+                  benchmarkLabel={data.benchmarkLabel}
+                />
+              </div>
+              <div id="montecarlo-panel" className="scroll-mt-24">
+                <MonteCarloPanel
+                  assets={validAssets}
+                  benchmarkSymbol={data.benchmarkSymbol}
+                  initialValue={10_000}
+                />
+              </div>
+            </div>
 
-            <DrawdownsTable
-              assets={validAssets}
-              benchmarkSymbol={data.benchmarkSymbol}
-              benchmarkLabel={data.benchmarkLabel}
-            />
+            <div id="income-panel" className="scroll-mt-24">
+              <IncomeBreakdown
+                assets={validAssets}
+                benchmarkSymbol={data.benchmarkSymbol}
+                years={10}
+              />
+            </div>
 
-            <CorrelationMatrix
-              assets={validAssets}
-              benchmarkSymbol={data.benchmarkSymbol}
-              benchmarkLabel={data.benchmarkLabel}
-              lookbackYears={5}
-            />
+            <div id="drawdowns-panel" className="scroll-mt-24">
+              <DrawdownsTable
+                assets={validAssets}
+                benchmarkSymbol={data.benchmarkSymbol}
+                benchmarkLabel={data.benchmarkLabel}
+              />
+            </div>
 
-            <AssetDetailCards
-              assets={validAssets}
-              benchmarkSymbol={data.benchmarkSymbol}
-            />
+            <div id="correlation-panel" className="scroll-mt-24">
+              <CorrelationMatrix
+                assets={validAssets}
+                benchmarkSymbol={data.benchmarkSymbol}
+                benchmarkLabel={data.benchmarkLabel}
+                lookbackYears={5}
+              />
+            </div>
+
+            <div id="detail-panel" className="scroll-mt-24">
+              <AssetDetailCards
+                assets={validAssets}
+                benchmarkSymbol={data.benchmarkSymbol}
+              />
+            </div>
           </div>
         ) : null}
       </div>

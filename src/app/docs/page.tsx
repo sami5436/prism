@@ -3,6 +3,7 @@ import IndicatorsDocs from '@/components/docs/IndicatorsDocs';
 import BalanceSheetDocs from '@/components/docs/BalanceSheetDocs';
 import FinancialsDocs from '@/components/docs/FinancialsDocs';
 import OptionsDocs from '@/components/docs/OptionsDocs';
+import CompareDocs from '@/components/docs/CompareDocs';
 
 const TOC = [
   {
@@ -82,6 +83,23 @@ const TOC = [
       { id: 'options-glossary', label: 'Glossary' },
     ],
   },
+  {
+    id: 'compare',
+    label: 'Compare',
+    children: [
+      { id: 'compare-tour', label: 'Tour of the view' },
+      { id: 'compare-picker', label: 'Asset picker' },
+      { id: 'total-return-basis', label: 'Total-return basis' },
+      { id: 'compare-summary', label: 'Executive summary' },
+      { id: 'compare-growth', label: 'Growth chart' },
+      { id: 'compare-returns', label: 'CAGR' },
+      { id: 'compare-montecarlo', label: 'Monte Carlo' },
+      { id: 'compare-income', label: 'Income breakdown' },
+      { id: 'compare-drawdowns', label: 'Drawdowns' },
+      { id: 'compare-correlation', label: 'Correlation matrix' },
+      { id: 'compare-detail', label: 'Asset cards' },
+    ],
+  },
 ];
 
 export default function DocsPage() {
@@ -103,6 +121,7 @@ export default function DocsPage() {
       <BalanceSheetDocs />
       <FinancialsDocs />
       <OptionsDocs />
+      <CompareDocs />
 
       <footer className="pt-8 border-t" style={{ borderColor: 'var(--border-color)' }}>
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>

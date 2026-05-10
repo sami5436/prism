@@ -5,6 +5,7 @@ import { type AssetResult, pointsFor } from './types';
 import { CRISIS_WINDOWS, maxDrawdownInWindow } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
 import SortHeader, { compareValues, type SortDir } from './SortHeader';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface Props {
   assets: AssetResult[];
@@ -79,7 +80,10 @@ export default function DrawdownsTable({ assets, benchmarkSymbol, benchmarkLabel
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="flex items-baseline justify-between mb-4">
         <div>
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>How it held up in crashes</h2>
+          <h2 className="text-lg font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+            How it held up in crashes
+            <DocsLink to="compare-drawdowns" label="How drawdowns are computed" />
+          </h2>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Peak-to-trough decline within each window. Click a column to sort.</p>
         </div>
       </div>

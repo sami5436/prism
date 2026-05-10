@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { type AssetResult, pointsFor } from './types';
 import { correlationMatrix } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface Props {
   assets: AssetResult[];
@@ -117,7 +118,10 @@ export default function CorrelationMatrix({
   return (
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="mb-5 max-w-2xl">
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Correlation matrix</h2>
+        <h2 className="text-lg font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+          Correlation matrix
+          <DocsLink to="compare-correlation" label="How correlation is computed" />
+        </h2>
         <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
           How closely each pair of funds <em>moves together</em> on a week-by-week basis. <span style={{ color: 'var(--bs-critical)' }}>Red</span> = highly correlated (essentially the same bet), <span style={{ color: 'var(--bs-positive)' }}>green</span> = independent or opposing. Anything <span style={{ color: 'var(--text-secondary)' }}>above ~0.85</span> means you&apos;re mostly doubling up. Computed from total-return weekly logs over the common history.
         </p>

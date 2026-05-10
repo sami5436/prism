@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { AssetResult } from './types';
 import type { FundHolding, SectorWeight } from '@/lib/yahooFinance';
 import { colorFor } from './colors';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface Props {
   assets: AssetResult[];
@@ -43,15 +44,21 @@ export default function AssetDetailCards({ assets, benchmarkSymbol }: Props) {
   const isSingle = userPicks.length === 1;
 
   return (
-    <div className={`grid grid-cols-1 ${isSingle ? '' : 'md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-      {userPicks.map((a, i) => (
-        <AssetCard
-          key={a.symbol}
-          asset={a}
-          color={colorFor(i)}
-          isSingle={isSingle}
-        />
-      ))}
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+        Asset details
+        <DocsLink to="compare-detail" label="What the asset cards show" />
+      </h2>
+      <div className={`grid grid-cols-1 ${isSingle ? '' : 'md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+        {userPicks.map((a, i) => (
+          <AssetCard
+            key={a.symbol}
+            asset={a}
+            color={colorFor(i)}
+            isSingle={isSingle}
+          />
+        ))}
+      </div>
     </div>
   );
 }

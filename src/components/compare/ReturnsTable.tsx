@@ -5,6 +5,7 @@ import { type AssetResult, pointsFor } from './types';
 import { trailingCAGR } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
 import SortHeader, { compareValues, type SortDir } from './SortHeader';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface Props {
   assets: AssetResult[];
@@ -68,7 +69,10 @@ export default function ReturnsTable({ assets, benchmarkSymbol, benchmarkLabel }
   return (
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="mb-4">
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Total return (CAGR)</h2>
+        <h2 className="text-lg font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+          Total return (CAGR)
+          <DocsLink to="compare-returns" label="How CAGR is computed" />
+        </h2>
         <p className="text-xs mt-1 max-w-2xl" style={{ color: 'var(--text-muted)' }}>
           <span style={{ color: 'var(--text-secondary)' }}>CAGR</span> is the steady yearly rate that turns your starting value into your ending value. These numbers include <span style={{ color: 'var(--text-secondary)' }}>reinvested dividends</span>, so dividend-heavy funds (e.g. SCHD) aren&apos;t understated. The Income breakdown panel below splits each fund&apos;s CAGR into price vs. dividends.
         </p>

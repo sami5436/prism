@@ -5,6 +5,7 @@ import { type AssetResult, pointsFor } from './types';
 import { monteCarloCone } from '@/lib/compareMath';
 import { colorFor } from './colors';
 import SortHeader, { compareValues, type SortDir } from './SortHeader';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface Props {
   assets: AssetResult[];
@@ -69,8 +70,9 @@ export default function MonteCarloPanel({ assets, benchmarkSymbol, initialValue 
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
         <div className="max-w-2xl">
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-lg font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
             Projection cone — ${initialValue.toLocaleString()} today
+            <DocsLink to="compare-montecarlo" label="How the Monte Carlo cone works" />
           </h2>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
             We run <span style={{ color: 'var(--text-secondary)' }}>1,500 simulated futures</span>, each one randomly resampling weeks from this fund&apos;s last 10 years. The table shows where $10K could land — <span style={{ color: 'var(--bs-critical)' }}>pessimistic</span> (only 10% of futures did worse), <span style={{ color: 'var(--text-secondary)' }}>median</span> (the middle outcome), and <span style={{ color: 'var(--bs-positive)' }}>optimistic</span> (only 10% did better). It&apos;s the <em>spread of plausible outcomes</em> if the future resembles the past — not a forecast.

@@ -3,6 +3,7 @@
 import { type AssetResult, pointsFor } from './types';
 import { trailingCAGR, annualizedVolatility, maxDrawdownInWindow, CRISIS_WINDOWS } from '@/lib/compareMath';
 import { colorFor, BENCHMARK_COLOR } from './colors';
+import DocsLink from '@/components/shared/DocsLink';
 
 interface Props {
   assets: AssetResult[];
@@ -58,8 +59,9 @@ export default function ExecutiveSummary({ assets, benchmarkSymbol, benchmarkLab
   return (
     <div className="rounded-2xl p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+        <h2 className="text-lg font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
           {isSingle ? `${userPicks[0].symbol} — at a glance` : 'Comparison summary'}
+          <DocsLink to="compare-summary" label="How the summary card works" />
         </h2>
         {benchmark && (
           <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-muted)' }}>
