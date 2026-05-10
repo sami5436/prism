@@ -14,10 +14,12 @@ const TTL = {
   search: 5 * 60 * 1000,          // 5 min
   quote: 30 * 1000,               // 30 s
   historical: 60 * 60 * 1000,     // 1 h (daily bars)
+  longHistory: 12 * 60 * 60 * 1000, // 12 h (15y weekly bars rarely change)
   optionsChain: 60 * 1000,        // 1 min
   earnings: 6 * 60 * 60 * 1000,   // 6 h (calendar changes slowly)
   news: 15 * 60 * 1000,           // 15 min
   analyst: 6 * 60 * 60 * 1000,    // 6 h (ratings change slowly)
+  fundProfile: 24 * 60 * 60 * 1000, // 24 h
 } as const;
 
 /**
@@ -131,6 +133,145 @@ export async function getHistoricalData(
     } catch (error) {
         console.error('Historical data error:', error);
         return [];
+    }
+  });
+}
+
+/**
+ * Long-range weekly historical data (used by the Compare module).
+ * Returns up to `years` of weekly closes. Falls back to whatever Yahoo has
+ * for short-history funds.
+ */
+export async function getLongHistoricalData(
+  symbol: string,
+  years = 15,
+): Promise<HistoricalDataPoint[]> {
+  return memoize('yf:longHistorical', `${symbol.toUpperCase()}:${years}`, TTL.longHistory, async () => {
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setFullYear(startDate.getFullYear() - years);
+
+      const historical: any = await yahooFinance.chart(symbol, {
+        period1: startDate,
+        period2: endDate,
+        interval: '1wk',
+      });
+
+      const quotes = historical?.quotes || [];
+      return quotes
+        .filter((q: any) => q?.close !== null && q?.close !== undefined)
+        .map((q: any) => ({
+          date: new Date(q.date).toISOString().split('T')[0],
+          open: q.open || 0,
+          high: q.high || 0,
+          low: q.low || 0,
+          close: q.close,
+          volume: q.volume || 0,
+        }));
+    } catch (error) {
+      console.error('Long historical error:', error);
+      return [];
+    }
+  });
+}
+
+export interface FundProfile {
+  symbol: string;
+  longName: string | null;
+  shortName: string | null;
+  quoteType: string | null; // 'ETF' | 'MUTUALFUND' | 'INDEX' | 'EQUITY'
+  exchange: string | null;
+  family: string | null;     // e.g. "Vanguard", "Schwab", "Fidelity"
+  category: string | null;   // e.g. "Large Blend"
+  expenseRatio: number | null; // decimal, e.g. 0.0003 = 0.03%
+  yieldPct: number | null;     // decimal, e.g. 0.013 = 1.3%
+  totalAssets: number | null;
+  inceptionDate: string | null;
+  ytdReturn: number | null;
+  threeYrAvgReturn: number | null;
+  fiveYrAvgReturn: number | null;
+  beta: number | null;
+}
+
+/**
+ * Best-effort fund/asset profile. Pulls from multiple quoteSummary modules and
+ * fills what's available. ETFs / mutual funds yield the most fields; for raw
+ * indices and stocks we may only get name + yield + beta.
+ */
+export async function getFundProfile(symbol: string): Promise<FundProfile | null> {
+  return memoize('yf:fundProfile', symbol.toUpperCase(), TTL.fundProfile, async () => {
+    try {
+      const summary: any = await yahooFinance.quoteSummary(
+        symbol,
+        {
+          modules: [
+            'price',
+            'summaryDetail',
+            'fundProfile',
+            'defaultKeyStatistics',
+            'summaryProfile',
+            'topHoldings',
+          ],
+        },
+        { validateResult: false },
+      );
+
+      const price = summary?.price || {};
+      const sd = summary?.summaryDetail || {};
+      const fp = summary?.fundProfile || {};
+      const dks = summary?.defaultKeyStatistics || {};
+      const sp = summary?.summaryProfile || {};
+      const th = summary?.topHoldings || {};
+
+      const num = (v: unknown): number | null => {
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        if (v && typeof v === 'object' && 'raw' in (v as object)) {
+          const r = (v as { raw: unknown }).raw;
+          return typeof r === 'number' && Number.isFinite(r) ? r : null;
+        }
+        return null;
+      };
+      const str = (v: unknown): string | null =>
+        typeof v === 'string' && v.length > 0 ? v : null;
+
+      // Yahoo sometimes ships expense ratio under topHoldings (fees breakdown)
+      // and sometimes under summaryDetail. Try both.
+      const expenseRatio =
+        num(th?.annualReportExpenseRatio) ??
+        num(sd?.annualReportExpenseRatio) ??
+        num(fp?.annualReportExpenseRatio) ??
+        num(dks?.annualReportExpenseRatio);
+
+      const yieldPct = num(sd?.yield) ?? num(sd?.dividendYield) ?? num(sd?.trailingAnnualDividendYield);
+
+      const inception =
+        dks?.fundInceptionDate instanceof Date
+          ? dks.fundInceptionDate.toISOString().split('T')[0]
+          : typeof dks?.fundInceptionDate === 'string'
+            ? dks.fundInceptionDate
+            : null;
+
+      return {
+        symbol: symbol.toUpperCase(),
+        longName: str(price?.longName) ?? str(price?.shortName),
+        shortName: str(price?.shortName),
+        quoteType: str(price?.quoteType),
+        exchange: str(price?.exchangeName) ?? str(price?.exchange),
+        family: str(fp?.family) ?? str(sp?.companyName),
+        category: str(fp?.categoryName) ?? str(fp?.category),
+        expenseRatio,
+        yieldPct,
+        totalAssets: num(sd?.totalAssets) ?? num(price?.marketCap),
+        inceptionDate: inception,
+        ytdReturn: num(dks?.ytdReturn),
+        threeYrAvgReturn: num(dks?.threeYearAverageReturn),
+        fiveYrAvgReturn: num(dks?.fiveYearAverageReturn),
+        beta: num(sd?.beta) ?? num(dks?.beta3Year),
+      };
+    } catch (error) {
+      console.error('Fund profile error:', error);
+      return null;
     }
   });
 }

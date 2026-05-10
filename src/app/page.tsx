@@ -122,7 +122,7 @@ export default function Home() {
         {/* Landing */}
         {!stockData && !isLoading && !error && (
           <div className="min-h-[90vh] flex flex-col items-center px-4 sm:px-6 pt-20 sm:pt-28">
-            <div className="max-w-4xl w-full text-center">
+            <div className="max-w-6xl w-full text-center">
               <h1 className="text-5xl md:text-7xl font-semibold tracking-tight mb-4" style={{ color: 'var(--text-primary)' }}>
                 Prism.
               </h1>
@@ -130,8 +130,8 @@ export default function Home() {
                 Your toolkit for stock analysis and financial intelligence.
               </p>
 
-              {/* 3-module grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-20 text-left">
+              {/* Module grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-20 text-left">
 
                 {/* Indicators */}
                 <div
@@ -229,6 +229,41 @@ export default function Home() {
                     style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
                   >
                     Open Options
+                  </a>
+                </div>
+
+                {/* Compare */}
+                <div
+                  className="rounded-2xl p-6 flex flex-col"
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', minHeight: '300px' }}
+                >
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(168,162,255,0.1)' }}>
+                      <svg className="w-5 h-5" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 17l6-6 4 4 8-8M14 7h7v7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Compare</h2>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>ETFs, mutual funds, indices</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-6 flex-1">
+                    {['1y / 5y / 10y / 15y CAGR', '$10K growth vs the S&P 500', 'Drawdowns through real crises', 'Monte Carlo projection cone'].map(f => (
+                      <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        <svg className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#a8a2ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href="/compare"
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                    style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
+                  >
+                    Open Compare
                   </a>
                 </div>
               </div>
