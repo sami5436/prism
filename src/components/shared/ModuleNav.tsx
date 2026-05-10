@@ -11,7 +11,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Indicators', href: '/', matchPrefix: '/' },
+  { label: 'Indicators', href: '/indicators', matchPrefix: '/indicators' },
   { label: 'Balance Sheet (WIP)', href: '/balance-sheet', matchPrefix: '/balance-sheet' },
   { label: 'Options', href: '/options', matchPrefix: '/options' },
   { label: 'Compare', href: '/compare', matchPrefix: '/compare' },
