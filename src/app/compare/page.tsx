@@ -11,6 +11,7 @@ import GrowthChart from '@/components/compare/GrowthChart';
 import MonteCarloPanel from '@/components/compare/MonteCarloPanel';
 import DrawdownsTable from '@/components/compare/DrawdownsTable';
 import IncomeBreakdown from '@/components/compare/IncomeBreakdown';
+import CorrelationMatrix from '@/components/compare/CorrelationMatrix';
 import AssetDetailCards from '@/components/compare/AssetDetailCards';
 import type { CompareResponse } from '@/components/compare/types';
 
@@ -203,6 +204,13 @@ export default function ComparePage() {
               assets={validAssets}
               benchmarkSymbol={data.benchmarkSymbol}
               benchmarkLabel={data.benchmarkLabel}
+            />
+
+            <CorrelationMatrix
+              assets={validAssets}
+              benchmarkSymbol={data.benchmarkSymbol}
+              benchmarkLabel={data.benchmarkLabel}
+              lookbackYears={5}
             />
 
             <AssetDetailCards

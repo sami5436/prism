@@ -323,6 +323,109 @@ export function monteCarloCone(
   };
 }
 
+/**
+ * Build a date → log-return map from a price series. The date is the END of
+ * the period (i.e. the bar where the return is realized).
+ */
+export function logReturnsByDate(points: PricePoint[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1].close;
+    const curr = points[i].close;
+    if (prev > 0 && curr > 0) out.set(points[i].date, Math.log(curr / prev));
+  }
+  return out;
+}
+
+/** Pearson correlation. Returns null if not enough overlapping data. */
+export function pearsonCorrelation(a: number[], b: number[]): number | null {
+  if (a.length !== b.length || a.length < 30) return null;
+  const n = a.length;
+  let sumA = 0;
+  let sumB = 0;
+  for (let i = 0; i < n; i++) {
+    sumA += a[i];
+    sumB += b[i];
+  }
+  const meanA = sumA / n;
+  const meanB = sumB / n;
+  let cov = 0;
+  let varA = 0;
+  let varB = 0;
+  for (let i = 0; i < n; i++) {
+    const da = a[i] - meanA;
+    const db = b[i] - meanB;
+    cov += da * db;
+    varA += da * da;
+    varB += db * db;
+  }
+  const den = Math.sqrt(varA * varB);
+  if (den === 0) return null;
+  return cov / den;
+}
+
+/**
+ * Build a correlation matrix across multiple price series. Aligns on the
+ * intersection of dates that all series share (so a fund with shorter history
+ * still gets correlated against everyone over the common window).
+ *
+ * `lookbackYears` caps the window from the most-recent shared date.
+ */
+export function correlationMatrix(
+  series: { id: string; points: PricePoint[] }[],
+  lookbackYears = 5,
+): {
+  ids: string[];
+  matrix: (number | null)[][];
+  observationCount: number;
+  windowStart: string | null;
+  windowEnd: string | null;
+} {
+  const ids = series.map(s => s.id);
+  const returns = series.map(s => logReturnsByDate(s.points));
+
+  if (returns.length === 0) {
+    return { ids, matrix: [], observationCount: 0, windowStart: null, windowEnd: null };
+  }
+
+  // Intersection of dates across all series.
+  let common = new Set(returns[0].keys());
+  for (let i = 1; i < returns.length; i++) {
+    const next = new Set<string>();
+    for (const d of common) if (returns[i].has(d)) next.add(d);
+    common = next;
+  }
+  let dates = Array.from(common).sort();
+
+  // Cap to lookback window from the latest shared date.
+  if (dates.length > 0) {
+    const lastMs = new Date(dates[dates.length - 1] + 'T00:00:00Z').getTime();
+    const cutoffMs = lastMs - lookbackYears * 365.25 * 24 * 60 * 60 * 1000;
+    dates = dates.filter(d => new Date(d + 'T00:00:00Z').getTime() >= cutoffMs);
+  }
+
+  // Aligned arrays per series.
+  const aligned = returns.map(m => dates.map(d => m.get(d)!));
+
+  const n = ids.length;
+  const matrix: (number | null)[][] = Array.from({ length: n }, () => new Array(n).fill(null));
+  for (let i = 0; i < n; i++) {
+    for (let j = i; j < n; j++) {
+      const c = i === j ? 1 : pearsonCorrelation(aligned[i], aligned[j]);
+      matrix[i][j] = c;
+      matrix[j][i] = c;
+    }
+  }
+
+  return {
+    ids,
+    matrix,
+    observationCount: dates.length,
+    windowStart: dates[0] ?? null,
+    windowEnd: dates[dates.length - 1] ?? null,
+  };
+}
+
 /** Annualized stddev of weekly log returns × √(periods/yr). */
 export function annualizedVolatility(points: PricePoint[]): number | null {
   if (points.length < 30) return null;
